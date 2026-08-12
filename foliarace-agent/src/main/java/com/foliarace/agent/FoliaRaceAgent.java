@@ -5,11 +5,20 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import java.lang.instrument.Instrumentation;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.jar.JarOutputStream;
 
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
 public final class FoliaRaceAgent {
+    private static JarFile bootstrapBridge;
+
     private FoliaRaceAgent() {
     }
 
@@ -22,6 +31,7 @@ public final class FoliaRaceAgent {
     }
 
     private static void install(Instrumentation instrumentation) {
+        appendBridgeToBootstrap(instrumentation);
         new AgentBuilder.Default()
                 .disableClassFormatChanges()
                 .ignore(nameStartsWith("net.bytebuddy.")
@@ -43,5 +53,32 @@ public final class FoliaRaceAgent {
                         )
                 ))
                 .installOn(instrumentation);
+    }
+
+    private static void appendBridgeToBootstrap(Instrumentation instrumentation) {
+        try {
+            Path bridgeJar = Files.createTempFile("foliarace-bridge-", ".jar");
+            bridgeJar.toFile().deleteOnExit();
+            try (OutputStream file = Files.newOutputStream(bridgeJar);
+                 JarOutputStream output = new JarOutputStream(file)) {
+                copyClass(output, "com/foliarace/agent/InstrumentationBridge.class");
+                copyClass(output, "com/foliarace/agent/InstrumentationSink.class");
+            }
+            bootstrapBridge = new JarFile(bridgeJar.toFile());
+            instrumentation.appendToBootstrapClassLoaderSearch(bootstrapBridge);
+        } catch (java.io.IOException | UnsupportedOperationException ignored) {
+            // Explicit observation remains available if the bridge cannot be made bootstrap-visible.
+        }
+    }
+
+    private static void copyClass(JarOutputStream output, String resource) throws java.io.IOException {
+        output.putNextEntry(new JarEntry(resource));
+        try (InputStream input = FoliaRaceAgent.class.getClassLoader().getResourceAsStream(resource)) {
+            if (input == null) {
+                throw new java.io.FileNotFoundException(resource);
+            }
+            input.transferTo(output);
+        }
+        output.closeEntry();
     }
 }

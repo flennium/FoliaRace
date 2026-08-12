@@ -43,6 +43,7 @@ public final class FoliaIntegrationHarness {
 
         Path runDirectory = Files.createTempDirectory("foliarace-folia-");
         try {
+            seedMojangServerCache(runDirectory);
             Path plugins = Files.createDirectories(runDirectory.resolve("plugins"));
             Files.copy(foliaRaceJar, plugins.resolve("FoliaRace.jar"));
             Path fixtureDirectory = Files.createDirectories(plugins.resolve("FoliaRaceFixture"));
@@ -92,6 +93,9 @@ public final class FoliaIntegrationHarness {
                 if (scenario.equals("same-region-safe") && report.contains("cross-region-ownership")) {
                     throw new IllegalStateException("Safe fixture produced a cross-region finding");
                 }
+                if (scenario.equals("async-state-access") && !report.contains("async-server-state-access")) {
+                    throw new IllegalStateException("Async fixture produced no async-state finding");
+                }
                 System.out.println("Folia integration scenario passed: " + scenario);
             } finally {
                 if (process.isAlive()) {
@@ -128,6 +132,18 @@ public final class FoliaIntegrationHarness {
     private static String javaBinary() {
         String javaHome = System.getProperty("java.home");
         return Path.of(javaHome, "bin", isWindows() ? "java.exe" : "java").toString();
+    }
+
+    private static void seedMojangServerCache(Path runDirectory) throws IOException {
+        String source = System.getProperty("foliarace.mojangJar", "");
+        String version = System.getProperty("foliarace.mojangVersion", "1.21.11");
+        if (source.isBlank()) {
+            return;
+        }
+        Path sourcePath = Path.of(source).toAbsolutePath();
+        requireFile(sourcePath);
+        Path cache = Files.createDirectories(runDirectory.resolve("cache"));
+        Files.copy(sourcePath, cache.resolve("mojang_" + version + ".jar"));
     }
 
     private static boolean isWindows() {

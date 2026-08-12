@@ -1,0 +1,6 @@
+# Copy to the FoliaRace plugin data directory as suppressions.yml.
+suppressions:
+  - detector-id: scheduler-misuse
+    plugin-id: example-plugin
+    reason: "Known hand-off while migrating to region schedulers"
+    expires: 2027-01-01

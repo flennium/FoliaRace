@@ -2,6 +2,7 @@ package com.foliarace.core.report;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,7 +12,9 @@ public final class JsonReportWriter implements ReportWriter {
     private final ObjectMapper mapper;
 
     public JsonReportWriter() {
-        mapper = new ObjectMapper().findAndRegisterModules().enable(SerializationFeature.INDENT_OUTPUT);
+        mapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .enable(SerializationFeature.INDENT_OUTPUT);
     }
 
     @Override

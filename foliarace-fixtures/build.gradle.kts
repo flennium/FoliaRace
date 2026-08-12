@@ -7,3 +7,9 @@ dependencies {
 tasks.jar {
     archiveBaseName.set("foliarace-fixtures")
 }
+
+tasks.processResources {
+    filesMatching("plugin.yml") {
+        expand(mapOf("version" to project.version.toString()))
+    }
+}
