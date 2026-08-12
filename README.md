@@ -32,3 +32,12 @@ The plugin API target can be changed for compatibility compilation:
 ```
 
 See [`compatibility/compatibility-matrix.md`](compatibility/compatibility-matrix.md) for the supported API coordinates and the distinction between resolver support and verified real-server coverage.
+
+Automatic instrumentation is packaged separately so it can be enabled only in development or test runs:
+
+```powershell
+./gradlew :foliarace-agent:shadowJar
+java -javaagent:foliarace-agent/build/libs/foliarace-agent-0.1.0-SNAPSHOT.jar -jar folia-server.jar nogui
+```
+
+The agent targets selected CraftBukkit world/entity access methods, forwards compact events through a guarded bridge, and leaves the operation result unchanged. If the agent is absent, FoliaRace continues in explicit-observation mode and reports the reduced coverage.

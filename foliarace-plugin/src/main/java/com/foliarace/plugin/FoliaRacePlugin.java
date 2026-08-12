@@ -10,7 +10,11 @@ import com.foliarace.core.session.DiagnosticSession;
 import com.foliarace.core.session.SessionManager;
 import com.foliarace.core.rule.CrossRegionOwnershipRule;
 import com.foliarace.core.rule.DetectorRule;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.Entity;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.nio.file.Path;
@@ -25,6 +29,7 @@ public final class FoliaRacePlugin extends JavaPlugin {
     private SessionManager sessionManager;
     private FoliaRuntimeAdapter runtimeAdapter;
     private DiagnosticSession lastSession;
+    private AgentBridgeInstaller agentBridge;
 
     @Override
     public void onEnable() {
@@ -48,6 +53,8 @@ public final class FoliaRacePlugin extends JavaPlugin {
         observationPipeline = new ObservationPipeline(config.observationQueueCapacity(), rules, findingAggregator);
         observationPipeline.start();
         FoliaRaceObservations.install(this);
+        agentBridge = new AgentBridgeInstaller();
+        agentBridge.install(this);
         startSession("startup");
 
         PluginCommand command = getCommand("foliarace");
@@ -68,6 +75,9 @@ public final class FoliaRacePlugin extends JavaPlugin {
         if (sessionManager != null) {
             stopSession();
         }
+        if (agentBridge != null) {
+            agentBridge.uninstall();
+        }
         FoliaRaceObservations.uninstall(this);
         if (observationPipeline != null) {
             observationPipeline.close();
@@ -83,6 +93,79 @@ public final class FoliaRacePlugin extends JavaPlugin {
 
     FoliaRuntimeAdapter runtimeAdapter() {
         return runtimeAdapter;
+    }
+
+    void recordInstrumentedOperation(String ownerType, String methodName, Object receiver, Object[] arguments) {
+        Plugin source = findOriginPlugin();
+        if (source == null) {
+            return;
+        }
+        if (receiver instanceof Entity entity && ownerType.endsWith("CraftEntity")) {
+            FoliaRaceObservations.observeEntityAccess(source, entity, com.foliarace.core.observation.OperationCategory.ENTITY_ACCESS);
+            return;
+        }
+        if (!(receiver instanceof World world)) {
+            return;
+        }
+
+        Location location = locationArgument(arguments);
+        if (location == null) {
+            location = numericLocation(world, arguments);
+        }
+        if (location == null) {
+            return;
+        }
+        var category = methodName.startsWith("getChunk")
+                ? com.foliarace.core.observation.OperationCategory.CHUNK_ACCESS
+                : com.foliarace.core.observation.OperationCategory.BLOCK_ACCESS;
+        FoliaRaceObservations.observeLocationAccess(source, location, category);
+    }
+
+    private Plugin findOriginPlugin() {
+        return StackWalker.getInstance().walk(frames -> frames
+                .map(frame -> pluginForClass(frame.getClassName()))
+                .filter(plugin -> plugin != null && plugin != this)
+                .findFirst()
+                .orElse(null));
+    }
+
+    private Plugin pluginForClass(String className) {
+        for (Plugin plugin : getServer().getPluginManager().getPlugins()) {
+            if (plugin == this) {
+                continue;
+            }
+            try {
+                Class<?> type = Class.forName(className, false, plugin.getClass().getClassLoader());
+                if (type.getClassLoader() == plugin.getClass().getClassLoader()) {
+                    return plugin;
+                }
+            } catch (ClassNotFoundException | LinkageError ignored) {
+                // The frame belongs to another loader or an unloaded plugin.
+            }
+        }
+        return null;
+    }
+
+    private static Location locationArgument(Object[] arguments) {
+        if (arguments == null) {
+            return null;
+        }
+        for (Object argument : arguments) {
+            if (argument instanceof Location location) {
+                return location.clone();
+            }
+        }
+        return null;
+    }
+
+    private static Location numericLocation(World world, Object[] arguments) {
+        if (arguments == null || arguments.length < 3
+                || !(arguments[0] instanceof Number x)
+                || !(arguments[1] instanceof Number y)
+                || !(arguments[2] instanceof Number z)) {
+            return null;
+        }
+        return new Location(world, x.doubleValue(), y.doubleValue(), z.doubleValue());
     }
 
     String statusLine() {

@@ -47,8 +47,8 @@ tasks.register("compatibilityReport") {
 
 tasks.register<JavaExec>("integrationTest") {
     group = "verification"
-    description = "Runs a real Folia server against the fixture plugin. Requires -PfoliaServerJar and -PfixtureScenario."
-    dependsOn(":foliarace-plugin:shadowJar", ":foliarace-fixtures:jar", ":foliarace-harness:classes")
+    description = "Runs a real Folia server against the fixture plugin with the instrumentation agent. Requires -PfoliaServerJar."
+    dependsOn(":foliarace-plugin:shadowJar", ":foliarace-fixtures:jar", ":foliarace-agent:shadowJar", ":foliarace-harness:classes")
     val serverJar = providers.gradleProperty("foliaServerJar")
     val scenario = providers.gradleProperty("fixtureScenario").orElse("cross-region-unsafe")
     onlyIf {
@@ -64,6 +64,7 @@ tasks.register<JavaExec>("integrationTest") {
         serverJar.map { it },
         project(":foliarace-plugin").layout.buildDirectory.file("libs/FoliaRace-${project.version}.jar").get().asFile.absolutePath,
         project(":foliarace-fixtures").layout.buildDirectory.file("libs/foliarace-fixtures-${project.version}.jar").get().asFile.absolutePath,
-        scenario.get()
+        scenario.get(),
+        project(":foliarace-agent").layout.buildDirectory.file("libs/foliarace-agent-${project.version}.jar").get().asFile.absolutePath
     )
 }

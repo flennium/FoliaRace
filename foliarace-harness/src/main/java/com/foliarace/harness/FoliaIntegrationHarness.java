@@ -20,24 +20,26 @@ import java.util.stream.Stream;
 /**
  * Launches a real Folia server for a deterministic fixture scenario.
  *
- * Required arguments: server.jar foliarace.jar fixture.jar scenario
+ * Required arguments: server.jar foliarace.jar fixture.jar scenario agent.jar
  */
 public final class FoliaIntegrationHarness {
     private FoliaIntegrationHarness() {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 4) {
-            throw new IllegalArgumentException("usage: FoliaIntegrationHarness <server.jar> <foliarace.jar> <fixture.jar> <scenario>");
+        if (args.length != 5) {
+            throw new IllegalArgumentException("usage: FoliaIntegrationHarness <server.jar> <foliarace.jar> <fixture.jar> <scenario> <agent.jar>");
         }
 
         Path serverJar = Path.of(args[0]).toAbsolutePath();
         Path foliaRaceJar = Path.of(args[1]).toAbsolutePath();
         Path fixtureJar = Path.of(args[2]).toAbsolutePath();
         String scenario = args[3].toLowerCase(Locale.ROOT);
+        Path agentJar = Path.of(args[4]).toAbsolutePath();
         requireFile(serverJar);
         requireFile(foliaRaceJar);
         requireFile(fixtureJar);
+        requireFile(agentJar);
 
         Path runDirectory = Files.createTempDirectory("foliarace-folia-");
         try {
@@ -50,7 +52,14 @@ public final class FoliaIntegrationHarness {
             Files.writeString(runDirectory.resolve("server.properties"),
                     "online-mode=false\nspawn-protection=0\n" + System.lineSeparator());
 
-            Process process = new ProcessBuilder(javaBinary(), "-jar", serverJar.toString(), "nogui")
+            List<String> command = new java.util.ArrayList<>(List.of(
+                    javaBinary(),
+                    "-javaagent:" + agentJar,
+                    "-jar",
+                    serverJar.toString(),
+                    "nogui"
+            ));
+            Process process = new ProcessBuilder(command)
                     .directory(runDirectory.toFile())
                     .redirectErrorStream(true)
                     .start();
