@@ -21,7 +21,11 @@ class JsonReportWriterTest {
                 "test",
                 Instant.parse("2026-08-12T00:00:00Z"),
                 "stopped",
-                new RuntimeDescriptor("Folia", "test", "25", "test", "limited"),
+                new RuntimeDescriptor(
+                        "Folia", "test", "25", "test", "limited",
+                        com.foliarace.core.runtime.CompatibilityStatus.DEGRADED,
+                        "test-profile", "test reason", java.util.Set.of()
+                ),
                 java.util.List.of(),
                 Map.of("droppedObservations", 0)
         );

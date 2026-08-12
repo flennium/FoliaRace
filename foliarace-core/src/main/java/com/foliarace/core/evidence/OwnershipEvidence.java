@@ -7,7 +7,8 @@ public record OwnershipEvidence(
         OwnershipKey owner,
         ResolutionSource source,
         Confidence confidence,
-        Instant observedAt
+        Instant observedAt,
+        Boolean currentContextOwnsTarget
 ) {
     public OwnershipEvidence {
         Objects.requireNonNull(owner, "owner");
@@ -21,11 +22,26 @@ public record OwnershipEvidence(
                 new OwnershipKey(OwnershipType.UNKNOWN, ""),
                 ResolutionSource.UNAVAILABLE,
                 Confidence.INFORMATIONAL,
-                observedAt
+                observedAt,
+                null
+        );
+    }
+
+    public static OwnershipEvidence authoritativeCurrentContextCheck(boolean ownsTarget, Instant observedAt) {
+        return new OwnershipEvidence(
+                new OwnershipKey(OwnershipType.UNKNOWN, ""),
+                ResolutionSource.AUTHORITATIVE_API,
+                ownsTarget ? Confidence.CONFIRMED : Confidence.PROBABLE,
+                observedAt,
+                ownsTarget
         );
     }
 
     public boolean isKnown() {
         return owner.isKnown();
+    }
+
+    public boolean isAuthoritativeMismatch() {
+        return source == ResolutionSource.AUTHORITATIVE_API && Boolean.FALSE.equals(currentContextOwnsTarget);
     }
 }

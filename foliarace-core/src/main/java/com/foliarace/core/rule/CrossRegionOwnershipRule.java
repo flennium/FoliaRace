@@ -27,6 +27,19 @@ public final class CrossRegionOwnershipRule implements DetectorRule {
 
     @Override
     public Optional<FindingDraft> evaluate(Observation observation) {
+        if (observation.targetOwnership().isAuthoritativeMismatch()) {
+            return Optional.of(new FindingDraft(
+                    ID,
+                    VERSION,
+                    Severity.HIGH,
+                    Confidence.CONFIRMED,
+                    "Region-owned state is not owned by the current region context",
+                    "Folia's authoritative ownership check reported that the current execution context does not own the target. The target region identity was not exposed by the runtime API.",
+                    RemediationCategory.USE_REGION_SCHEDULER,
+                    "The runtime confirmed a mismatch but did not expose the target region identity."
+            ));
+        }
+
         if (observation.executionContext().type() != ExecutionContextType.REGION
                 || !observation.executionContext().hasOwner()
                 || !observation.targetOwnership().isKnown()

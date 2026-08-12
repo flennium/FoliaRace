@@ -5,6 +5,16 @@ public record RuntimeDescriptor(
         String runtimeVersion,
         String javaVersion,
         String adapterVersion,
-        String coverageStatus
+        String coverageStatus,
+        CompatibilityStatus compatibilityStatus,
+        String compatibilityProfile,
+        String compatibilityReason,
+        java.util.Set<AdapterCapability> capabilities
 ) {
+    public RuntimeDescriptor {
+        compatibilityStatus = compatibilityStatus == null ? CompatibilityStatus.UNSUPPORTED : compatibilityStatus;
+        compatibilityProfile = compatibilityProfile == null ? "unknown" : compatibilityProfile;
+        compatibilityReason = compatibilityReason == null ? "" : compatibilityReason;
+        capabilities = capabilities == null ? java.util.Set.of() : java.util.Set.copyOf(capabilities);
+    }
 }

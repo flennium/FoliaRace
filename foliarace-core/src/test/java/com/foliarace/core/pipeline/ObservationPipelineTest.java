@@ -54,7 +54,8 @@ class ObservationPipelineTest {
                         new OwnershipKey(OwnershipType.REGION, "region-b"),
                         ResolutionSource.AUTHORITATIVE_API,
                         Confidence.CONFIRMED,
-                        now
+                        now,
+                        null
                 ),
                 new CallSite("fixture.Plugin#run", List.of("fixture.Plugin#run"))
         );

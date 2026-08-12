@@ -48,6 +48,21 @@ class CrossRegionOwnershipRuleTest {
         assertTrue(new CrossRegionOwnershipRule().evaluate(unknown).isEmpty());
     }
 
+    @Test
+    void reportsAuthoritativeCurrentContextMismatchWithoutInventingTargetRegion() {
+        Observation mismatch = Observation.create(
+                NOW,
+                "fixture-plugin",
+                OperationCategory.LOCATION_ACCESS,
+                ExecutionContext.unknown(NOW, "folia-region-thread"),
+                OwnershipEvidence.authoritativeCurrentContextCheck(false, NOW),
+                new CallSite("fixture.Plugin#run", java.util.List.of("fixture.Plugin#run"))
+        );
+
+        var finding = new CrossRegionOwnershipRule().evaluate(mismatch).orElseThrow();
+        assertEquals(Confidence.CONFIRMED, finding.confidence());
+    }
+
     private static Observation observation(String executionRegion, String targetRegion) {
         return Observation.create(
                 NOW,
@@ -58,7 +73,8 @@ class CrossRegionOwnershipRuleTest {
                         new OwnershipKey(OwnershipType.REGION, targetRegion),
                         ResolutionSource.AUTHORITATIVE_API,
                         Confidence.CONFIRMED,
-                        NOW
+                        NOW,
+                        null
                 ),
                 new CallSite("fixture.Plugin#run", java.util.List.of("fixture.Plugin#run"))
         );

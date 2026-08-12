@@ -34,3 +34,13 @@ subprojects {
         "testRuntimeOnly"("org.junit.platform:junit-platform-launcher:6.0.1")
     }
 }
+
+tasks.register("compatibilityReport") {
+    group = "verification"
+    description = "Prints the Folia API coordinate used for the plugin compilation."
+    doLast {
+        val version = providers.gradleProperty("foliaApiVersion").orElse("26.2.build.4-beta").get()
+        println("FoliaRace plugin API target: dev.folia:folia-api:$version")
+        println("See compatibility/compatibility-matrix.md for the explicit runtime matrix.")
+    }
+}

@@ -39,6 +39,7 @@ public final class FoliaRacePlugin extends JavaPlugin {
                 : List.of();
         observationPipeline = new ObservationPipeline(config.observationQueueCapacity(), rules, findingAggregator);
         observationPipeline.start();
+        FoliaRaceObservations.install(this);
         startSession("startup");
 
         PluginCommand command = getCommand("foliarace");
@@ -49,15 +50,23 @@ public final class FoliaRacePlugin extends JavaPlugin {
         }
 
         getLogger().info("FoliaRace enabled: " + statusLine());
+        if (runtimeAdapter.describe().compatibilityStatus().name().equals("UNSUPPORTED")) {
+            getLogger().warning("FoliaRace entered limited mode: " + runtimeAdapter.describe().compatibilityReason());
+        }
     }
 
     @Override
     public void onDisable() {
         stopSession();
+        FoliaRaceObservations.uninstall(this);
         if (observationPipeline != null) {
             observationPipeline.close();
         }
         flushReport();
+    }
+
+    boolean recordObservation(com.foliarace.core.observation.Observation observation) {
+        return observationPipeline != null && observationPipeline.submit(observation);
     }
 
     String statusLine() {
@@ -69,6 +78,8 @@ public final class FoliaRacePlugin extends JavaPlugin {
                 + ", detectors=" + configManager.current().enabledDetectors()
                 + ", findings=" + findingAggregator.groupCount()
                 + ", dropped=" + observationPipeline.droppedObservations()
+                + ", compatibility=" + runtimeAdapter.describe().compatibilityStatus().name().toLowerCase(java.util.Locale.ROOT)
+                + ", profile=" + runtimeAdapter.describe().compatibilityProfile()
                 + ", coverage=" + runtimeAdapter.describe().coverageStatus();
     }
 
