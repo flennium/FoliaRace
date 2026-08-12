@@ -53,6 +53,13 @@ public final class FoliaRuntimeAdapter implements RuntimeAdapter<Location, Entit
         } catch (LinkageError ignored) {
             // An unknown context is safer than inferring ownership from a name.
         }
+        String normalizedThreadName = threadName.toLowerCase(java.util.Locale.ROOT);
+        if (normalizedThreadName.contains("async") || normalizedThreadName.contains("forkjoin")) {
+            return new ExecutionContext(ExecutionContextType.ASYNC, "", threadName, observedAt);
+        }
+        if (normalizedThreadName.contains("folia") || normalizedThreadName.contains("plugin")) {
+            return new ExecutionContext(ExecutionContextType.PLUGIN_THREAD, "", threadName, observedAt);
+        }
         return ExecutionContext.unknown(observedAt, threadName);
     }
 

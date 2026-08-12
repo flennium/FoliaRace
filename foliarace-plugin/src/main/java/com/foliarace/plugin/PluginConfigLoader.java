@@ -28,7 +28,10 @@ final class PluginConfigLoader {
                 file.getDouble("sampling-rate"),
                 enumSet(file.getStringList("output-formats"), OutputFormat.class, "output-formats"),
                 file.getBoolean("production-mode"),
-                file.getBoolean("production-acknowledged")
+                file.getBoolean("production-acknowledged"),
+                file.getString("suppression-file", "suppressions.yml"),
+                file.getString("baseline-file", "baseline.json"),
+                file.getBoolean("ci-mode")
         );
     }
 

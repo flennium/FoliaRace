@@ -1,0 +1,10 @@
+package com.foliarace.core.ci;
+
+public enum CiStatus {
+    CLEAN,
+    FINDINGS_DETECTED,
+    INCOMPLETE_COVERAGE,
+    INSTRUMENTATION_FAILURE,
+    CONFIGURATION_FAILURE,
+    SERVER_FAILURE
+}

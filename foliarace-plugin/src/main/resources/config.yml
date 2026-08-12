@@ -1,5 +1,8 @@
 enabled-detectors:
   - cross-region-ownership
+  - cross-entity-ownership
+  - async-server-state-access
+  - scheduler-misuse
 
 overhead-mode: standard
 max-session-duration-seconds: 900
@@ -11,3 +14,6 @@ output-formats:
   - json
 production-mode: false
 production-acknowledged: false
+suppression-file: suppressions.yml
+baseline-file: baseline.json
+ci-mode: false

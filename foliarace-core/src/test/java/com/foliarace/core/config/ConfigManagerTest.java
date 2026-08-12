@@ -24,6 +24,9 @@ class ConfigManagerTest {
                 1.0,
                 Set.of(OutputFormat.JSON),
                 false,
+                false,
+                "suppressions.yml",
+                "baseline.json",
                 false
         ));
 
@@ -46,7 +49,10 @@ class ConfigManagerTest {
                 defaults.samplingRate(),
                 defaults.outputFormats(),
                 true,
-                false
+                false,
+                defaults.suppressionFile(),
+                defaults.baselineFile(),
+                defaults.ciMode()
         ));
     }
 }

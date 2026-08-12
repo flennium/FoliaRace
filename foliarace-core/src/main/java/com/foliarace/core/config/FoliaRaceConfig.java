@@ -15,7 +15,10 @@ public record FoliaRaceConfig(
         double samplingRate,
         Set<OutputFormat> outputFormats,
         boolean productionMode,
-        boolean productionAcknowledged
+        boolean productionAcknowledged,
+        String suppressionFile,
+        String baselineFile,
+        boolean ciMode
 ) {
     public FoliaRaceConfig {
         enabledDetectors = enabledDetectors == null ? Set.of() : Set.copyOf(enabledDetectors);
@@ -35,6 +38,8 @@ public record FoliaRaceConfig(
             throw new IllegalArgumentException("samplingRate must be between 0 and 1");
         }
         outputFormats = outputFormats == null || outputFormats.isEmpty() ? Set.of(OutputFormat.JSON) : Set.copyOf(outputFormats);
+        suppressionFile = suppressionFile == null ? "" : suppressionFile.trim();
+        baselineFile = baselineFile == null ? "" : baselineFile.trim();
         if (productionMode && !productionAcknowledged) {
             throw new IllegalArgumentException("productionMode requires productionAcknowledged");
         }
@@ -42,7 +47,7 @@ public record FoliaRaceConfig(
 
     public static FoliaRaceConfig defaults() {
         return new FoliaRaceConfig(
-                Set.of("cross-region-ownership"),
+                Set.of("cross-region-ownership", "cross-entity-ownership", "async-server-state-access", "scheduler-misuse"),
                 OverheadMode.STANDARD,
                 900,
                 Severity.INFO,
@@ -51,6 +56,9 @@ public record FoliaRaceConfig(
                 1.0,
                 Set.of(OutputFormat.JSON),
                 false,
+                false,
+                "suppressions.yml",
+                "baseline.json",
                 false
         );
     }
