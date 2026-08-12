@@ -1,0 +1,15 @@
+package com.foliarace.core.observation;
+
+public enum OperationCategory {
+    LOCATION_ACCESS,
+    CHUNK_ACCESS,
+    BLOCK_ACCESS,
+    ENTITY_ACCESS,
+    PLAYER_ACCESS,
+    INVENTORY_ACCESS,
+    WORLD_GLOBAL_ACCESS,
+    SERVER_GLOBAL_ACCESS,
+    SCHEDULER_SUBMISSION,
+    BLOCKING_OPERATION,
+    UNKNOWN
+}

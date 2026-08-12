@@ -1,0 +1,13 @@
+package com.foliarace.core.finding;
+
+public enum RemediationCategory {
+    USE_REGION_SCHEDULER,
+    USE_ENTITY_SCHEDULER,
+    USE_GLOBAL_SCHEDULER,
+    KEEP_COMPUTATION_ASYNC,
+    REVALIDATE_OWNERSHIP,
+    REVIEW_THREAD_SAFETY,
+    REVIEW_BLOCKING,
+    COVERAGE_GAP,
+    NONE
+}
