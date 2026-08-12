@@ -1,0 +1,16 @@
+name: FoliaRace
+version: ${version}
+main: com.foliarace.plugin.FoliaRacePlugin
+api-version: '1.21'
+folia-supported: true
+author: FoliaRace contributors
+description: Development-time diagnostics for Folia ownership and scheduler misuse.
+commands:
+  foliarace:
+    description: Inspect FoliaRace diagnostics.
+    usage: /foliarace <status|start|stop|flush>
+    permission: foliarace.admin
+permissions:
+  foliarace.admin:
+    description: Use FoliaRace administrative commands.
+    default: op
