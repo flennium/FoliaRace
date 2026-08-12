@@ -1,3 +1,5 @@
+import org.gradle.api.publish.maven.MavenPublication
+
 plugins {
     id("com.gradleup.shadow")
 }
@@ -26,4 +28,17 @@ tasks.jar {
 
 tasks.build {
     dependsOn(tasks.shadowJar)
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("plugin") {
+            artifact(tasks.shadowJar)
+            pom {
+                name.set("FoliaRace plugin")
+                description.set("Development-time diagnostics for Folia ownership and scheduler misuse")
+                url.set("https://github.com/flennium/FoliaRace")
+            }
+        }
+    }
 }

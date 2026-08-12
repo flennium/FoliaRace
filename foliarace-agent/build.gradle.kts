@@ -1,3 +1,5 @@
+import org.gradle.api.publish.maven.MavenPublication
+
 plugins {
     id("com.gradleup.shadow")
 }
@@ -28,4 +30,17 @@ tasks.jar {
 
 tasks.build {
     dependsOn(tasks.shadowJar)
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("agent") {
+            artifact(tasks.shadowJar)
+            pom {
+                name.set("FoliaRace instrumentation agent")
+                description.set("Optional Byte Buddy instrumentation agent for FoliaRace")
+                url.set("https://github.com/flennium/FoliaRace")
+            }
+        }
+    }
 }

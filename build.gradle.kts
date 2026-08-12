@@ -2,6 +2,7 @@ import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.JavaExec
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.jvm.toolchain.JavaToolchainService
+import org.gradle.api.publish.PublishingExtension
 import java.security.MessageDigest
 
 plugins {
@@ -15,6 +16,24 @@ allprojects {
 
 subprojects {
     apply(plugin = "java-library")
+    apply(plugin = "maven-publish")
+
+    extensions.configure<PublishingExtension> {
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/flennium/FoliaRace")
+                credentials {
+                    username = providers.gradleProperty("gpr.user")
+                        .orElse(providers.environmentVariable("GITHUB_ACTOR"))
+                        .orNull
+                    password = providers.gradleProperty("gpr.key")
+                        .orElse(providers.environmentVariable("GITHUB_TOKEN"))
+                        .orNull
+                }
+            }
+        }
+    }
 
     extensions.configure<JavaPluginExtension> {
         toolchain {
@@ -62,11 +81,9 @@ tasks.register("compatibilityReport") {
 tasks.register<JavaExec>("performanceTest") {
     group = "verification"
     description = "Runs the bounded observation pipeline smoke benchmark."
-    dependsOn(":foliarace-harness:jar", ":foliarace-core:jar")
+    dependsOn(":foliarace-harness:shadowJar")
     classpath = files(
-        project(":foliarace-harness").tasks.named("jar"),
-        project(":foliarace-core").tasks.named("jar"),
-        project(":foliarace-harness").configurations.getByName("runtimeClasspath")
+        project(":foliarace-harness").tasks.named("shadowJar")
     )
     mainClass.set("com.foliarace.harness.FoliaRaceBenchmark")
     args(providers.gradleProperty("benchmarkCount").orElse("100000").get())
@@ -78,15 +95,13 @@ tasks.register<JavaExec>("ciCheck") {
     group = "verification"
     description = "Fails the build when a FoliaRace report violates CI policy."
     val report = providers.gradleProperty("ciReport")
-    dependsOn(":foliarace-harness:jar", ":foliarace-core:jar")
+    dependsOn(":foliarace-harness:shadowJar")
     doFirst {
         check(report.isPresent) { "Pass -PciReport=<path-to-report.json>" }
         check(file(report.get()).isFile) { "CI report does not exist: ${report.get()}" }
     }
     classpath = files(
-        project(":foliarace-harness").tasks.named("jar"),
-        project(":foliarace-core").tasks.named("jar"),
-        project(":foliarace-harness").configurations.getByName("runtimeClasspath")
+        project(":foliarace-harness").tasks.named("shadowJar")
     )
     mainClass.set("com.foliarace.harness.FoliaRaceCi")
     doFirst {
@@ -114,7 +129,7 @@ val releaseBundle = tasks.register<Zip>("releaseBundle") {
         ":foliarace-plugin:shadowJar",
         ":foliarace-agent:shadowJar",
         ":foliarace-fixtures:jar",
-        ":foliarace-harness:jar",
+        ":foliarace-harness:shadowJar",
         "compatibilityVerification"
     )
     archiveFileName.set("FoliaRace-${project.version}.zip")
@@ -122,7 +137,7 @@ val releaseBundle = tasks.register<Zip>("releaseBundle") {
     from(project(":foliarace-plugin").tasks.named("shadowJar")) { into("plugins") }
     from(project(":foliarace-agent").tasks.named("shadowJar")) { into("agents") }
     from(project(":foliarace-fixtures").tasks.named("jar")) { into("fixtures") }
-    from(project(":foliarace-harness").tasks.named("jar")) { into("harness") }
+    from(project(":foliarace-harness").tasks.named("shadowJar")) { into("harness") }
     from("README.md")
     from("docs") { into("docs") }
     from("ci") { into("ci") }
@@ -161,7 +176,7 @@ tasks.register("leakTest") {
 tasks.register<JavaExec>("integrationTest") {
     group = "verification"
     description = "Runs a real Folia server against the fixture plugin with the instrumentation agent. Requires -PfoliaServerJar."
-    dependsOn(":foliarace-plugin:shadowJar", ":foliarace-fixtures:jar", ":foliarace-agent:shadowJar", ":foliarace-harness:jar", ":foliarace-core:jar")
+    dependsOn(":foliarace-plugin:shadowJar", ":foliarace-fixtures:jar", ":foliarace-agent:shadowJar", ":foliarace-harness:shadowJar")
     val serverJar = providers.gradleProperty("foliaServerJar")
     val scenario = providers.gradleProperty("fixtureScenario").orElse("cross-region-unsafe")
     val mojangJar = providers.gradleProperty("mojangServerJar")
@@ -173,9 +188,7 @@ tasks.register<JavaExec>("integrationTest") {
         }
     }
     classpath = files(
-        project(":foliarace-harness").tasks.named("jar"),
-        project(":foliarace-core").tasks.named("jar"),
-        project(":foliarace-harness").configurations.getByName("runtimeClasspath")
+        project(":foliarace-harness").tasks.named("shadowJar")
     )
     mainClass.set("com.foliarace.harness.FoliaIntegrationHarness")
     doFirst {

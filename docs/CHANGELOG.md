@@ -11,4 +11,4 @@ The first release provides:
 - JSON and Markdown reports with suppressions, baselines, and CI evaluation;
 - Folia fixture plugins and an isolated real-server harness;
 - compatibility compilation, stress, leak, performance, and release gates;
-- a reproducible release ZIP with SHA-256 checksum.
+- a reproducible release ZIP with SHA-256 checksum and Maven publications for GitHub Packages.

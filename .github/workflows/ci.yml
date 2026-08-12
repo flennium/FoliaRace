@@ -16,3 +16,5 @@ jobs:
           cache: gradle
       - name: Verify and package
         run: ./gradlew test build compatibilityVerification leakTest releaseChecksums performanceTest -PbenchmarkCount=25000 -PbenchmarkMinThroughput=100000 -PbenchmarkMaxDropRate=0.90 --no-daemon
+      - name: Validate Maven publications
+        run: ./gradlew publishAllPublicationsToGitHubPackagesRepository --dry-run --no-daemon

@@ -14,4 +14,4 @@ Project maintenance references:
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
-- [Project specification](FoliaRace_README.md)
+- [Package distribution](PACKAGES.md)
