@@ -1,0 +1,3 @@
+[submodule "FoliaRaceExamplePlugin"]
+	path = FoliaRaceExamplePlugin
+	url = https://github.com/flennium/FoliaRaceExamplePlugin.git

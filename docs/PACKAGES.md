@@ -39,6 +39,15 @@ dependencies {
 }
 ```
 
+Declare the runtime plugin dependency in the consuming plugin's `plugin.yml`:
+
+```yaml
+depend:
+  - FoliaRace
+```
+
+Do not use `implementation` for the FoliaRace plugin artifact. Bundling it into another plugin creates duplicate classes and separate plugin state; Folia should load one FoliaRace plugin instance.
+
 GitHub Packages Maven/Gradle access requires authentication. Use a personal access token classic with the appropriate package scope for local access, or `GITHUB_TOKEN` inside a workflow with package permissions.
 
 ## Local publishing
