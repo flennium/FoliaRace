@@ -1,5 +1,7 @@
 # FoliaRace tutorial
 
+This is the shortest path from a fresh checkout to a useful diagnostic report.
+
 This tutorial walks through a small development-server run and a CI check.
 
 ## 1. Build the artifacts
@@ -28,7 +30,7 @@ output-formats:
 ci-mode: true
 ```
 
-Copy `config/suppressions.example.yml` or `config/baseline.example.json` into the same plugin data directory only when the exception is deliberate and reviewable.
+Copy [`config/suppressions.example.yml`](../config/suppressions.example.yml) or [`config/baseline.example.json`](../config/baseline.example.json) into the plugin data directory only when the exception is deliberate and reviewable.
 
 ## 3. Exercise the workload
 
@@ -38,7 +40,7 @@ The bundled fixture plugin provides three repeatable scenarios:
 - `cross-region-unsafe` performs a location access from a different region and should produce an ownership finding.
 - `async-state-access` reads server state from an asynchronous task and should produce an async finding.
 
-For a real server, use the harness command in the README. The harness creates a temporary server directory, installs the artifacts, waits for the fixture marker, and validates the resulting report.
+For a real server, use the harness command in the [README](../README.md). The harness creates a temporary server directory, installs the artifacts, waits for the fixture marker, and validates the resulting report.
 
 ## 4. Read the report
 

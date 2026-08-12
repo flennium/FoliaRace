@@ -55,7 +55,7 @@ tasks.register("compatibilityReport") {
     doLast {
         val version = providers.gradleProperty("foliaApiVersion").orElse("26.2.build.4-beta").get()
         println("FoliaRace plugin API target: dev.folia:folia-api:$version")
-        println("See compatibility/compatibility-matrix.md for the explicit runtime matrix.")
+        println("See docs/compatibility/compatibility-matrix.md for the explicit runtime matrix.")
     }
 }
 
@@ -123,9 +123,10 @@ val releaseBundle = tasks.register<Zip>("releaseBundle") {
     from(project(":foliarace-agent").tasks.named("shadowJar")) { into("agents") }
     from(project(":foliarace-fixtures").tasks.named("jar")) { into("fixtures") }
     from(project(":foliarace-harness").tasks.named("jar")) { into("harness") }
-    from("README.md", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "TUTORIAL.md", "DETECTORS.md", "CONFIGURATION.md", "REPORTS.md")
+    from("README.md")
+    from("docs") { into("docs") }
     from("ci") { into("ci") }
-    from("compatibility") { into("compatibility") }
+    from("compatibility/verified-api-versions.txt") { into("compatibility") }
     from("config") { into("config") }
 }
 

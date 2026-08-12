@@ -22,8 +22,8 @@ Configuration is validated before the plugin starts its detectors. Invalid value
 
 ## Suppressions
 
-Use `config/suppressions.example.yml` as the starting point. Every suppression should identify the detector and plugin, include a reason, and have an expiry date. Suppression is an exception workflow, not a replacement for fixing the underlying access.
+Use [`config/suppressions.example.yml`](../config/suppressions.example.yml) as the starting point. Every suppression should identify the detector and plugin, include a reason, and have an expiry date. Suppression is an exception workflow, not a replacement for fixing the underlying access.
 
 ## Baselines
 
-Use `config/baseline.example.json` to record an approved existing state while a plugin is being migrated. New fingerprints remain visible, and stale baseline entries are reported so the file does not become permanent blind coverage.
+Use [`config/baseline.example.json`](../config/baseline.example.json) to record an approved existing state while a plugin is being migrated. New fingerprints remain visible, and stale baseline entries are reported so the file does not become permanent blind coverage.
