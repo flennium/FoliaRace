@@ -1,0 +1,13 @@
+enabled-detectors:
+  - cross-region-ownership
+
+overhead-mode: standard
+max-session-duration-seconds: 900
+minimum-severity: info
+minimum-confidence: informational
+observation-queue-capacity: 8192
+sampling-rate: 1.0
+output-formats:
+  - json
+production-mode: false
+production-acknowledged: false

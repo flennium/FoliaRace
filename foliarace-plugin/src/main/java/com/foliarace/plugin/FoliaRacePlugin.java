@@ -28,7 +28,15 @@ public final class FoliaRacePlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        FoliaRaceConfig config = FoliaRaceConfig.defaults();
+        saveDefaultConfig();
+        FoliaRaceConfig config;
+        try {
+            config = PluginConfigLoader.load(this);
+        } catch (IllegalArgumentException error) {
+            getLogger().severe("Invalid configuration: " + error.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         configManager = new ConfigManager(config);
         findingAggregator = new FindingAggregator();
         sessionManager = new SessionManager();
@@ -57,16 +65,24 @@ public final class FoliaRacePlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        stopSession();
+        if (sessionManager != null) {
+            stopSession();
+        }
         FoliaRaceObservations.uninstall(this);
         if (observationPipeline != null) {
             observationPipeline.close();
         }
-        flushReport();
+        if (lastSession != null) {
+            flushReport();
+        }
     }
 
     boolean recordObservation(com.foliarace.core.observation.Observation observation) {
         return observationPipeline != null && observationPipeline.submit(observation);
+    }
+
+    FoliaRuntimeAdapter runtimeAdapter() {
+        return runtimeAdapter;
     }
 
     String statusLine() {

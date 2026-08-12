@@ -1,15 +1,20 @@
 package com.foliarace.plugin;
 
-import com.foliarace.core.runtime.RuntimeAdapter;
 import com.foliarace.core.runtime.AdapterCapability;
 import com.foliarace.core.runtime.CompatibilityMatrix;
 import com.foliarace.core.runtime.CompatibilityResolution;
+import com.foliarace.core.runtime.RuntimeAdapter;
 import com.foliarace.core.runtime.RuntimeDescriptor;
+import com.foliarace.core.context.ExecutionContext;
+import com.foliarace.core.context.ExecutionContextType;
+import com.foliarace.core.evidence.OwnershipEvidence;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Entity;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -17,7 +22,7 @@ import java.util.Set;
  * Initial adapter boundary. Ownership and scheduler queries will be added here
  * once the first real Folia integration fixtures exist.
  */
-public final class FoliaRuntimeAdapter implements RuntimeAdapter {
+public final class FoliaRuntimeAdapter implements RuntimeAdapter<Location, Entity> {
     public static final String ADAPTER_VERSION = "0.2.0";
 
     @Override
@@ -36,6 +41,35 @@ public final class FoliaRuntimeAdapter implements RuntimeAdapter {
                 compatibility.reason(),
                 compatibility.capabilities()
         );
+    }
+
+    @Override
+    public ExecutionContext classifyCurrentContext(Instant observedAt) {
+        String threadName = Thread.currentThread().getName();
+        try {
+            if (Boolean.TRUE.equals(invokeBoolean(Bukkit.class, "isGlobalTickThread"))) {
+                return new ExecutionContext(ExecutionContextType.GLOBAL_REGION, "global", threadName, observedAt);
+            }
+        } catch (LinkageError ignored) {
+            // An unknown context is safer than inferring ownership from a name.
+        }
+        return ExecutionContext.unknown(observedAt, threadName);
+    }
+
+    @Override
+    public OwnershipEvidence resolveLocationOwnership(Location location, Instant observedAt) {
+        Boolean ownsTarget = invokeOwnershipCheck(Location.class, location);
+        return ownsTarget == null
+                ? OwnershipEvidence.unknown(observedAt)
+                : OwnershipEvidence.authoritativeCurrentContextCheck(ownsTarget, observedAt);
+    }
+
+    @Override
+    public OwnershipEvidence resolveEntityOwnership(Entity entity, Instant observedAt) {
+        Boolean ownsTarget = invokeOwnershipCheck(Entity.class, entity);
+        return ownsTarget == null
+                ? OwnershipEvidence.unknown(observedAt)
+                : OwnershipEvidence.authoritativeCurrentContextCheck(ownsTarget, observedAt);
     }
 
     private static String runtimeVersion() {
@@ -80,6 +114,24 @@ public final class FoliaRuntimeAdapter implements RuntimeAdapter {
             return method != null;
         } catch (NoSuchMethodException ignored) {
             return false;
+        }
+    }
+
+    private static Boolean invokeOwnershipCheck(Class<?> targetType, Object target) {
+        try {
+            Method method = Bukkit.class.getMethod("isOwnedByCurrentRegion", targetType);
+            return (Boolean) method.invoke(null, target);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | ClassCastException ignored) {
+            return null;
+        }
+    }
+
+    private static Boolean invokeBoolean(Class<?> type, String name) {
+        try {
+            Method method = type.getMethod(name);
+            return (Boolean) method.invoke(null);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | ClassCastException ignored) {
+            return null;
         }
     }
 }

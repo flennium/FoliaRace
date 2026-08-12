@@ -23,6 +23,8 @@ Use Java 25 for the default build:
 ./gradlew build
 ```
 
+The plugin copies `config.yml` into its data folder on first start and validates it before enabling detectors. Invalid configuration disables FoliaRace rather than silently falling back to unsafe assumptions.
+
 The plugin API target can be changed for compatibility compilation:
 
 ```powershell
