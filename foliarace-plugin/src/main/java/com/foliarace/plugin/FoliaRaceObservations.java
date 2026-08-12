@@ -6,6 +6,7 @@ import com.foliarace.core.observation.ObservationOrigin;
 import com.foliarace.core.observation.OperationCategory;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.Plugin;
 
 import java.time.Instant;
@@ -47,6 +48,23 @@ public final class FoliaRaceObservations {
         return plugin == null
                 ? ObservationReceipt.unavailable("FoliaRace is not enabled")
                 : observe(plugin, source, entity, category, plugin.runtimeAdapter().resolveEntityOwnership(entity, Instant.now()));
+    }
+
+    public static ObservationReceipt observeGlobalAccess(Plugin source, OperationCategory category) {
+        FoliaRacePlugin plugin = runtime;
+        return plugin == null
+                ? ObservationReceipt.unavailable("FoliaRace is not enabled")
+                : observe(plugin, source, new Object(), category, com.foliarace.core.evidence.OwnershipEvidence.unknown(Instant.now()));
+    }
+
+    public static ObservationReceipt observeInventoryAccess(Plugin source, Inventory inventory) {
+        if (inventory == null) {
+            return ObservationReceipt.unavailable("inventory is null");
+        }
+        if (inventory.getHolder() instanceof Entity entity) {
+            return observeEntityAccess(source, entity, OperationCategory.INVENTORY_ACCESS);
+        }
+        return observeGlobalAccess(source, OperationCategory.INVENTORY_ACCESS);
     }
 
     private static ObservationReceipt observe(

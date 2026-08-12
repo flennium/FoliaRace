@@ -23,6 +23,9 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Entity;
+import org.bukkit.block.Block;
+import org.bukkit.Chunk;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -126,8 +129,25 @@ public final class FoliaRacePlugin extends JavaPlugin {
         if (source == null) {
             return;
         }
-        if (receiver instanceof Entity entity && ownerType.endsWith("CraftEntity")) {
+        if (receiver instanceof Entity entity && (ownerType.endsWith("CraftEntity") || ownerType.endsWith("CraftPlayer"))) {
             FoliaRaceObservations.observeEntityAccess(source, entity, com.foliarace.core.observation.OperationCategory.ENTITY_ACCESS);
+            return;
+        }
+        if (receiver instanceof Inventory inventory) {
+            FoliaRaceObservations.observeInventoryAccess(source, inventory);
+            return;
+        }
+        if (receiver instanceof Block block) {
+            FoliaRaceObservations.observeLocationAccess(source, block.getLocation(), com.foliarace.core.observation.OperationCategory.BLOCK_ACCESS);
+            return;
+        }
+        if (receiver instanceof Chunk chunk) {
+            Location center = new Location(chunk.getWorld(), (chunk.getX() << 4) + 8, 0, (chunk.getZ() << 4) + 8);
+            FoliaRaceObservations.observeLocationAccess(source, center, com.foliarace.core.observation.OperationCategory.CHUNK_ACCESS);
+            return;
+        }
+        if (ownerType.endsWith("CraftServer")) {
+            FoliaRaceObservations.observeGlobalAccess(source, com.foliarace.core.observation.OperationCategory.SERVER_GLOBAL_ACCESS);
             return;
         }
         if (!(receiver instanceof World world)) {
@@ -228,6 +248,7 @@ public final class FoliaRacePlugin extends JavaPlugin {
         }
         try {
             Path reportPath = getDataFolder().toPath().resolve("reports").resolve(lastSession.id() + ".json");
+            CiEvaluation evaluation = ciEvaluation(reportFindings());
             new JsonReportWriter().write(reportPath, new ReportDocument(
                     "1",
                     lastSession.id(),
@@ -240,8 +261,9 @@ public final class FoliaRacePlugin extends JavaPlugin {
                             "droppedObservations", observationPipeline.droppedObservations(),
                             "ruleFailures", observationPipeline.ruleFailures(),
                             "pendingObservations", observationPipeline.pendingObservations(),
-                            "ciStatus", ciEvaluation(reportFindings()).status().name(),
-                            "ciExitCode", ciEvaluation(reportFindings()).exitCode()
+                            "ciMode", configManager.current().ciMode(),
+                            "ciStatus", evaluation.status().name(),
+                            "ciExitCode", configManager.current().ciMode() ? evaluation.exitCode() : 0
                     )
             ));
             return "Wrote report to " + reportPath;

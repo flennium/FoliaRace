@@ -1,58 +1,91 @@
 # FoliaRace
 
-FoliaRace is a development-time diagnostic aid for Folia plugin ownership and scheduler mistakes. It is not a formal proof that a plugin is thread-safe: a clean run means only that no enabled detector observed a violation during the exercised workload.
+FoliaRace is a development-time diagnostic plugin for finding Folia ownership, context, and scheduler mistakes in Bukkit plugins. It records observations, evaluates conservative detectors, and writes reports that can be reviewed locally or enforced in CI.
 
-## Included implementation
+FoliaRace is not a proof of thread safety. A clean report means that no enabled detector found a violation in the workload that was exercised.
 
-The project now includes the complete diagnostic path: persistent configuration, runtime adapters with conservative ownership/context evidence, Folia fixtures and a real-server harness, optional automatic instrumentation, entity/async/scheduler detectors, JSON and Markdown reports, suppressions, baselines, CI evaluation, stress and lifecycle tests, compatibility verification, performance smoke tests, and reproducible release packaging.
+## Requirements
 
-The detailed product specification remains local at `docs/FoliaRace_README.md`. The `docs/` directory is intentionally ignored while the specification is being iterated, but the local file is preserved.
+- Java 25 for the default build and release artifacts
+- A Folia server for real-server integration tests
+- Gradle wrapper (`gradlew` or `gradlew.bat`)
 
-## Build
-
-Use Java 25 for the default build:
+## Build and verify
 
 ```powershell
-./gradlew test
-./gradlew build
-./gradlew compatibilityVerification
+./gradlew test build compatibilityVerification
+./gradlew leakTest
 ./gradlew performanceTest -PbenchmarkCount=25000
 ./gradlew release
 ```
 
-`release` writes `build/release/FoliaRace-<version>.zip` and its SHA-256 checksum. The bundle contains the plugin, agent, fixture plugin, harness, compatibility matrix, configuration examples, and release documentation.
+The release task writes `build/release/FoliaRace-<version>.zip` and a SHA-256 checksum. The archive contains the plugin, optional agent, fixture plugin, harness, configuration examples, compatibility records, and documentation.
 
-The plugin copies `config.yml` into its data folder on first start and validates it before enabling detectors. Invalid configuration disables FoliaRace rather than silently falling back to unsafe assumptions.
+## Install for a development server
 
-The plugin API target can be changed for compatibility compilation:
+1. Copy the FoliaRace plugin JAR from the release archive into the server's `plugins` directory.
+2. Start the server once so the default `config.yml` is copied to the plugin data directory.
+3. Adjust the enabled detectors and output settings in that file.
+4. Exercise the plugin workload and inspect the generated report under the configured report directory.
+
+Automatic instrumentation is optional. When enabled, the agent observes selected Bukkit/CraftBukkit accessors and forwards compact events without changing their return values:
+
+```powershell
+java -javaagent:foliarace-agent-0.1.0.jar -jar folia-server.jar nogui
+```
+
+Use explicit observations when the agent cannot cover a plugin-specific access path. See [TUTORIAL.md](TUTORIAL.md) for a complete first run.
+
+## Real-server harness
+
+The harness runs an isolated server with the fixture plugin and checks the expected result for one scenario:
+
+```powershell
+./gradlew integrationTest `
+  -PfoliaServerJar=C:\servers\folia-1.21.11-14.jar `
+  -PmojangServerJar=C:\servers\mojang-1.21.11.jar `
+  -PmojangServerVersion=1.21.11 `
+  -PfixtureScenario=cross-region-unsafe
+```
+
+Available scenarios are `cross-region-unsafe`, `same-region-safe`, and `async-state-access`. Use `-PmojangServerVersion` when testing a server line other than 1.21.11. Real-server evidence is recorded in [compatibility/real-server-coverage.md](compatibility/real-server-coverage.md); API and resolver coverage is listed separately in [compatibility/compatibility-matrix.md](compatibility/compatibility-matrix.md).
+
+## CI policy
+
+Set `ci-mode: true` in the plugin configuration. After the server run has produced a JSON report, enforce its recorded policy result with:
+
+```powershell
+./gradlew ciCheck -PciReport=C:\path\to\report.json
+```
+
+The task fails when the report is not CI-enabled or when the report contains unsuppressed findings. Suppressions and baselines are documented in [REPORTS.md](REPORTS.md).
+
+Performance thresholds are enforced rather than merely printed:
+
+```powershell
+./gradlew performanceTest `
+  -PbenchmarkCount=25000 `
+  -PbenchmarkMinThroughput=100000 `
+  -PbenchmarkMaxDropRate=0.90
+```
+
+## Compatibility
+
+The plugin can be compiled against a selected API coordinate without changing source:
 
 ```powershell
 ./gradlew :foliarace-plugin:compileJava -PfoliaApiVersion=1.21.11-R0.1-SNAPSHOT
 ```
 
-See [`compatibility/compatibility-matrix.md`](compatibility/compatibility-matrix.md) for the supported API coordinates and the distinction between resolver support and verified real-server coverage.
+See the [compatibility matrix](compatibility/compatibility-matrix.md) before selecting a runtime. A resolver profile or successful API compilation does not replace real-server testing.
 
-Automatic instrumentation is packaged separately so it can be enabled only in development or test runs:
+## Documentation
 
-```powershell
-./gradlew :foliarace-agent:shadowJar
-java -javaagent:foliarace-agent/build/libs/foliarace-agent-0.1.0-SNAPSHOT.jar -jar folia-server.jar nogui
-```
+- [TUTORIAL.md](TUTORIAL.md) — first run and report walkthrough
+- [DETECTORS.md](DETECTORS.md) — detector behavior and coverage
+- [CONFIGURATION.md](CONFIGURATION.md) — configuration reference
+- [REPORTS.md](REPORTS.md) — report schema, suppressions, baselines, and CI
+- [compatibility/compatibility-matrix.md](compatibility/compatibility-matrix.md) — API targets
+- [compatibility/real-server-coverage.md](compatibility/real-server-coverage.md) — executed server scenarios
 
-The agent targets selected CraftBukkit world/entity access methods, forwards compact events through a guarded bridge, and leaves the operation result unchanged. If the agent is absent, FoliaRace continues in explicit-observation mode and reports the reduced coverage.
-
-## Real-server integration
-
-Supply a Folia server JAR explicitly; the task is skipped when no server is provided:
-
-```powershell
-./gradlew integrationTest -PfoliaServerJar=C:\path\to\folia-server.jar -PfixtureScenario=cross-region-unsafe
-```
-
-The harness creates an isolated temporary server directory, installs FoliaRace plus a fixture plugin, enables the agent, waits for the fixture scenario, and checks the generated report. Supported scenarios are `cross-region-unsafe`, `same-region-safe`, and `async-state-access`.
-
-## Policy files and CI mode
-
-Copy `config/suppressions.example.yml` and `config/baseline.example.json` into the plugin data directory as `suppressions.yml` and `baseline.json`. Set `ci-mode: true` to make new, unsuppressed findings fail the CI evaluation; baseline coverage is reported separately so stale baselines are visible.
-
-The latest compatibility targets are listed in [`compatibility/compatibility-matrix.md`](compatibility/compatibility-matrix.md), and every default target is checked against `compatibility/verified-api-versions.txt`.
+The product specification remains in the local ignored file `docs/FoliaRace_README.md`.

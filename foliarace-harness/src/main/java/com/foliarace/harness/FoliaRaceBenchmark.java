@@ -30,8 +30,19 @@ public final class FoliaRaceBenchmark {
             }
             pipeline.stop(Duration.ofSeconds(10));
             long elapsed = System.nanoTime() - start;
-            System.out.printf("observations=%d elapsedMillis=%.3f throughputPerSecond=%.2f dropped=%d groups=%d%n",
-                    count, elapsed / 1_000_000.0, count / (elapsed / 1_000_000_000.0), pipeline.droppedObservations(), findings.groupCount());
+            double seconds = elapsed / 1_000_000_000.0;
+            double throughput = count / seconds;
+            double dropRate = pipeline.droppedObservations() / (double) count;
+            System.out.printf("observations=%d elapsedMillis=%.3f throughputPerSecond=%.2f dropRate=%.4f dropped=%d groups=%d%n",
+                    count, elapsed / 1_000_000.0, throughput, dropRate, pipeline.droppedObservations(), findings.groupCount());
+            double minimumThroughput = Double.parseDouble(System.getProperty("foliarace.benchmark.minThroughput", "100000"));
+            double maximumDropRate = Double.parseDouble(System.getProperty("foliarace.benchmark.maxDropRate", "0.90"));
+            if (throughput < minimumThroughput) {
+                throw new IllegalStateException("throughput " + throughput + " is below " + minimumThroughput);
+            }
+            if (dropRate > maximumDropRate) {
+                throw new IllegalStateException("drop rate " + dropRate + " exceeds " + maximumDropRate);
+            }
         }
     }
 

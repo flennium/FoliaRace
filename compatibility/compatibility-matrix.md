@@ -26,4 +26,4 @@ The plugin module accepts a version override without changing source:
 ./gradlew :foliarace-plugin:compileJava -PfoliaApiVersion=26.1.2.build.8-stable
 ```
 
-The default build remains pinned to `26.2.build.4-beta` for reproducibility. A line should not be called release-supported until the real-server integration harness verifies its ownership and scheduler capabilities.
+The default build remains pinned to `26.2.build.4-beta` for reproducibility. Resolver support and API compilation do not imply real-server coverage. See [`real-server-coverage.md`](real-server-coverage.md) for the versions that have completed the isolated harness.

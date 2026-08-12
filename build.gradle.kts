@@ -1,4 +1,7 @@
 import org.gradle.api.tasks.bundling.Zip
+import org.gradle.api.tasks.JavaExec
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
 import java.security.MessageDigest
 
 plugins {
@@ -38,6 +41,14 @@ subprojects {
     }
 }
 
+val javaToolchainService = project(":foliarace-core").extensions.getByType<JavaToolchainService>()
+
+tasks.withType<JavaExec>().configureEach {
+    javaLauncher.set(javaToolchainService.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    })
+}
+
 tasks.register("compatibilityReport") {
     group = "verification"
     description = "Prints the Folia API coordinate used for the plugin compilation."
@@ -54,10 +65,33 @@ tasks.register<JavaExec>("performanceTest") {
     dependsOn(":foliarace-harness:jar", ":foliarace-core:jar")
     classpath = files(
         project(":foliarace-harness").tasks.named("jar"),
-        project(":foliarace-core").tasks.named("jar")
+        project(":foliarace-core").tasks.named("jar"),
+        project(":foliarace-harness").configurations.getByName("runtimeClasspath")
     )
     mainClass.set("com.foliarace.harness.FoliaRaceBenchmark")
     args(providers.gradleProperty("benchmarkCount").orElse("100000").get())
+    systemProperty("foliarace.benchmark.minThroughput", providers.gradleProperty("benchmarkMinThroughput").orElse("100000").get())
+    systemProperty("foliarace.benchmark.maxDropRate", providers.gradleProperty("benchmarkMaxDropRate").orElse("0.90").get())
+}
+
+tasks.register<JavaExec>("ciCheck") {
+    group = "verification"
+    description = "Fails the build when a FoliaRace report violates CI policy."
+    val report = providers.gradleProperty("ciReport")
+    dependsOn(":foliarace-harness:jar", ":foliarace-core:jar")
+    doFirst {
+        check(report.isPresent) { "Pass -PciReport=<path-to-report.json>" }
+        check(file(report.get()).isFile) { "CI report does not exist: ${report.get()}" }
+    }
+    classpath = files(
+        project(":foliarace-harness").tasks.named("jar"),
+        project(":foliarace-core").tasks.named("jar"),
+        project(":foliarace-harness").configurations.getByName("runtimeClasspath")
+    )
+    mainClass.set("com.foliarace.harness.FoliaRaceCi")
+    doFirst {
+        setArgs(listOf(report.get()))
+    }
 }
 
 tasks.register("compatibilityVerification") {
@@ -89,7 +123,8 @@ val releaseBundle = tasks.register<Zip>("releaseBundle") {
     from(project(":foliarace-agent").tasks.named("shadowJar")) { into("agents") }
     from(project(":foliarace-fixtures").tasks.named("jar")) { into("fixtures") }
     from(project(":foliarace-harness").tasks.named("jar")) { into("harness") }
-    from("README.md", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md")
+    from("README.md", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "TUTORIAL.md", "DETECTORS.md", "CONFIGURATION.md", "REPORTS.md")
+    from("ci") { into("ci") }
     from("compatibility") { into("compatibility") }
     from("config") { into("config") }
 }
@@ -110,7 +145,16 @@ tasks.register("releaseChecksums") {
 tasks.register("release") {
     group = "distribution"
     description = "Builds the release bundle and checksum."
-    dependsOn("releaseChecksums")
+    dependsOn("releaseChecksums", "leakTest")
+}
+
+tasks.register("leakTest") {
+    group = "verification"
+    description = "Runs lifecycle leak detection as an explicit release gate."
+    dependsOn(":foliarace-core:test")
+    doLast {
+        logger.lifecycle("Lifecycle leak gate passed")
+    }
 }
 
 tasks.register<JavaExec>("integrationTest") {
@@ -120,6 +164,7 @@ tasks.register<JavaExec>("integrationTest") {
     val serverJar = providers.gradleProperty("foliaServerJar")
     val scenario = providers.gradleProperty("fixtureScenario").orElse("cross-region-unsafe")
     val mojangJar = providers.gradleProperty("mojangServerJar")
+    val mojangVersion = providers.gradleProperty("mojangServerVersion").orElse("1.21.11")
     onlyIf {
         if (serverJar.isPresent) true else {
             logger.lifecycle("Skipping integrationTest: pass -PfoliaServerJar=<path-to-folia-server.jar>")
@@ -128,14 +173,15 @@ tasks.register<JavaExec>("integrationTest") {
     }
     classpath = files(
         project(":foliarace-harness").tasks.named("jar"),
-        project(":foliarace-core").tasks.named("jar")
+        project(":foliarace-core").tasks.named("jar"),
+        project(":foliarace-harness").configurations.getByName("runtimeClasspath")
     )
     mainClass.set("com.foliarace.harness.FoliaIntegrationHarness")
     doFirst {
         if (mojangJar.isPresent) {
             jvmArgs(
                 "-Dfoliarace.mojangJar=${mojangJar.get()}",
-                "-Dfoliarace.mojangVersion=1.21.11"
+                "-Dfoliarace.mojangVersion=${mojangVersion.get()}"
             )
         }
     }

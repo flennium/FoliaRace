@@ -7,6 +7,7 @@ import com.foliarace.core.finding.FindingAggregator;
 import com.foliarace.core.observation.CallSite;
 import com.foliarace.core.observation.Observation;
 import com.foliarace.core.observation.OperationCategory;
+import com.foliarace.core.rule.DetectorRule;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -23,7 +24,28 @@ class ObservationPipelineStressTest {
     @Test
     void concurrentOverflowDoesNotBlockOrLosePipelineHealthAccounting() throws Exception {
         FindingAggregator aggregator = new FindingAggregator();
-        ObservationPipeline pipeline = new ObservationPipeline(64, List.of(), aggregator);
+        DetectorRule slowRule = new DetectorRule() {
+            @Override
+            public String id() {
+                return "stress-delay";
+            }
+
+            @Override
+            public String version() {
+                return "1";
+            }
+
+            @Override
+            public java.util.Optional<com.foliarace.core.finding.FindingDraft> evaluate(Observation observation) {
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+                return java.util.Optional.empty();
+            }
+        };
+        ObservationPipeline pipeline = new ObservationPipeline(64, List.of(slowRule), aggregator);
         pipeline.start();
         var executor = Executors.newFixedThreadPool(8);
         CountDownLatch start = new CountDownLatch(1);

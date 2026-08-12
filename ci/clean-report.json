@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1",
+  "sessionId": "00000000-0000-0000-0000-000000000001",
+  "sessionLabel": "ci-fixture",
+  "generatedAt": "2026-01-01T00:00:00Z",
+  "status": "stopped",
+  "runtime": {
+    "platform": "Folia",
+    "runtimeVersion": "fixture",
+    "javaVersion": "25",
+    "adapterVersion": "fixture",
+    "coverageStatus": "explicit-only",
+    "compatibilityStatus": "SUPPORTED",
+    "compatibilityProfile": "fixture",
+    "compatibilityReason": "CI task fixture",
+    "capabilities": []
+  },
+  "findings": [],
+  "health": {
+    "ciMode": true,
+    "ciStatus": "CLEAN",
+    "ciExitCode": 0
+  }
+}

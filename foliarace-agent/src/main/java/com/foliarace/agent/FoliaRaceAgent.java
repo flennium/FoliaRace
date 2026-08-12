@@ -39,7 +39,8 @@ public final class FoliaRaceAgent {
                         .or(nameStartsWith("jdk."))
                         .or(nameStartsWith("sun."))
                         .or(nameStartsWith("com.foliarace.agent.")))
-                .type(ElementMatchers.nameMatches("org\\.bukkit\\.craftbukkit\\..*(CraftWorld|CraftEntity)$"))
+                .type(ElementMatchers.nameMatches(
+                        "org\\.bukkit\\.craftbukkit\\..*(CraftWorld|CraftEntity|CraftPlayer|CraftChunk|CraftBlock|CraftInventory|CraftServer)$"))
                 .transform((builder, type, classLoader, module, domain) -> builder.visit(
                         Advice.to(ServerOperationAdvice.class).on(
                                 isMethod().and(
@@ -47,8 +48,20 @@ public final class FoliaRaceAgent {
                                                 .or(ElementMatchers.named("getBlockType"))
                                                 .or(ElementMatchers.named("getBlockData"))
                                                 .or(ElementMatchers.named("getChunkAt"))
+                                                .or(ElementMatchers.named("getHighestBlockAt"))
                                                 .or(ElementMatchers.named("getLocation"))
                                                 .or(ElementMatchers.named("getNearbyEntities"))
+                                                .or(ElementMatchers.named("getEntitiesByClass"))
+                                                .or(ElementMatchers.named("getWorld"))
+                                                .or(ElementMatchers.named("getBlock"))
+                                                .or(ElementMatchers.named("getChunk"))
+                                                .or(ElementMatchers.named("getType"))
+                                                .or(ElementMatchers.named("getBlockData"))
+                                                .or(ElementMatchers.named("getInventory"))
+                                                .or(ElementMatchers.named("getEnderChest"))
+                                                .or(ElementMatchers.named("getOnlinePlayers"))
+                                                .or(ElementMatchers.named("getWorlds"))
+                                                .or(ElementMatchers.named("getPluginManager"))
                                 )
                         )
                 ))

@@ -1,5 +1,7 @@
 package com.foliarace.fixture;
 
+import com.foliarace.plugin.FoliaRaceObservations;
+import com.foliarace.core.observation.OperationCategory;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -36,6 +38,7 @@ public final class FoliaRaceFixturePlugin extends JavaPlugin {
 
     private void observe(Location target, String label) {
         target.getWorld().getBlockAt(target);
-        getLogger().info("fixture scenario=" + label + ", instrumented block access issued");
+        var receipt = FoliaRaceObservations.observeLocationAccess(this, target, OperationCategory.BLOCK_ACCESS);
+        getLogger().info("fixture scenario=" + label + ", block access issued, explicitAccepted=" + receipt.accepted());
     }
 }

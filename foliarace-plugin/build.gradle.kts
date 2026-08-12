@@ -11,6 +11,7 @@ dependencies {
 tasks.shadowJar {
     archiveClassifier.set("")
     exclude("META-INF/LICENSE", "META-INF/NOTICE", "META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA")
+    relocate("com.fasterxml.jackson", "com.foliarace.internal.jackson")
 }
 
 tasks.processResources {

@@ -6,6 +6,7 @@ public final class InstrumentationBridge {
     private static volatile InstrumentationSink sink;
     private static final AtomicLong emittedEvents = new AtomicLong();
     private static final AtomicLong droppedEvents = new AtomicLong();
+    private static final ThreadLocal<Boolean> recording = ThreadLocal.withInitial(() -> false);
 
     private InstrumentationBridge() {
     }
@@ -26,11 +27,17 @@ public final class InstrumentationBridge {
             droppedEvents.incrementAndGet();
             return;
         }
+        if (recording.get()) {
+            return;
+        }
         emittedEvents.incrementAndGet();
+        recording.set(true);
         try {
             current.accept(ownerType, methodName, receiver, arguments == null ? new Object[0] : arguments);
         } catch (RuntimeException ignored) {
             droppedEvents.incrementAndGet();
+        } finally {
+            recording.set(false);
         }
     }
 

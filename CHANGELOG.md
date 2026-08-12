@@ -1,9 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 - 2026-08-12
 
-- Added bounded observation processing with overflow accounting and lifecycle tests.
-- Added runtime adapters, Folia ownership/context resolution, and explicit compatibility profiles.
-- Added Folia integration fixtures, a child-process harness, and optional Byte Buddy instrumentation.
-- Added entity, asynchronous server-state, scheduler, suppression, baseline, JSON, Markdown, and CI reporting support.
-- Added stress, compatibility, performance, release bundle, and checksum gates.
+The first release provides:
+
+- bounded observation processing with lifecycle and overflow accounting;
+- runtime adapters for ownership, execution context, and compatibility evidence;
+- explicit observations plus optional Byte Buddy instrumentation;
+- entity, async server-state, and scheduler detectors;
+- JSON and Markdown reports with suppressions, baselines, and CI evaluation;
+- Folia fixture plugins and an isolated real-server harness;
+- compatibility compilation, stress, leak, performance, and release gates;
+- a reproducible release ZIP with SHA-256 checksum.

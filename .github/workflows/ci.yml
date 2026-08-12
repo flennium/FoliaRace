@@ -15,4 +15,4 @@ jobs:
           java-version: '25'
           cache: gradle
       - name: Verify and package
-        run: ./gradlew test build compatibilityVerification releaseChecksums performanceTest -PbenchmarkCount=25000 --no-daemon
+        run: ./gradlew test build compatibilityVerification leakTest releaseChecksums performanceTest -PbenchmarkCount=25000 -PbenchmarkMinThroughput=100000 -PbenchmarkMaxDropRate=0.90 --no-daemon
