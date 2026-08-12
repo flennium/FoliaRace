@@ -22,3 +22,5 @@ rootProject.name = "FoliaRace"
 
 include(":foliarace-core")
 include(":foliarace-plugin")
+include(":foliarace-fixtures")
+include(":foliarace-harness")

@@ -44,3 +44,26 @@ tasks.register("compatibilityReport") {
         println("See compatibility/compatibility-matrix.md for the explicit runtime matrix.")
     }
 }
+
+tasks.register<JavaExec>("integrationTest") {
+    group = "verification"
+    description = "Runs a real Folia server against the fixture plugin. Requires -PfoliaServerJar and -PfixtureScenario."
+    dependsOn(":foliarace-plugin:shadowJar", ":foliarace-fixtures:jar", ":foliarace-harness:classes")
+    val serverJar = providers.gradleProperty("foliaServerJar")
+    val scenario = providers.gradleProperty("fixtureScenario").orElse("cross-region-unsafe")
+    onlyIf {
+        if (serverJar.isPresent) true else {
+            logger.lifecycle("Skipping integrationTest: pass -PfoliaServerJar=<path-to-folia-server.jar>")
+            false
+        }
+    }
+    classpath = project(":foliarace-harness").extensions.getByType<SourceSetContainer>()
+        .getByName("main").runtimeClasspath
+    mainClass.set("com.foliarace.harness.FoliaIntegrationHarness")
+    args(
+        serverJar.map { it },
+        project(":foliarace-plugin").layout.buildDirectory.file("libs/FoliaRace-${project.version}.jar").get().asFile.absolutePath,
+        project(":foliarace-fixtures").layout.buildDirectory.file("libs/foliarace-fixtures-${project.version}.jar").get().asFile.absolutePath,
+        scenario.get()
+    )
+}

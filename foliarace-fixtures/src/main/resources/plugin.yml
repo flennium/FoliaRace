@@ -1,0 +1,6 @@
+name: FoliaRaceFixture
+version: ${version}
+main: com.foliarace.fixture.FoliaRaceFixturePlugin
+api-version: '1.21'
+folia-supported: true
+description: Test-only FoliaRace fixture plugin.
