@@ -33,7 +33,7 @@ FoliaRace is a development-time diagnostic plugin for Folia and Bukkit plugins. 
 ./gradlew release
 ```
 
-The release task writes `build/release/FoliaRace-<version>.zip` and a SHA-256 checksum. The archive is the convenient all-in-one server bundle; the plugin, agent, fixture, harness, and core artifacts are also published to GitHub Packages for Gradle/Maven-based consumption. See [docs/PACKAGES.md](docs/PACKAGES.md).
+The release task writes `build/release/FoliaRace-<version>.zip` and a SHA-256 checksum. GitHub Releases also provide the standalone FoliaRace plugin and agent JARs, while the archive remains the convenient all-in-one server bundle. The plugin, agent, fixture, harness, and core artifacts are also published to GitHub Packages for Gradle/Maven-based consumption. See [docs/PACKAGES.md](docs/PACKAGES.md).
 
 ## Install
 

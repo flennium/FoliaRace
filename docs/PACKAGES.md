@@ -60,4 +60,4 @@ To publish all module publications from a developer machine:
   -Pgpr.key=$env:GITHUB_TOKEN
 ```
 
-For normal server installation, use the release ZIP or download the plugin artifact from the package registry. The ZIP is not a replacement for the Maven repository; it is the assembled operational bundle.
+For normal server installation, download the standalone FoliaRace plugin JAR from the GitHub Release assets, or use the release ZIP for the complete operational bundle. The ZIP is not a replacement for the Maven repository; it is the assembled operational bundle.
