@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.foliarace.core.finding.Baseline;
 import com.foliarace.core.finding.Suppression;
+import com.foliarace.core.finding.FindingFingerprint;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
@@ -51,7 +52,7 @@ final class PolicyLoader {
             }
             Set<String> keys = new HashSet<>();
             root.fieldNames().forEachRemaining(keys::add);
-            requireKeys(keys, Set.of("schemaVersion", "detectorVersions", "fingerprints"), file.getName());
+            requireKeys(keys, Set.of("schemaVersion", "detectorVersions", "fingerprints", "fingerprintAlgorithm"), file.getName());
             if (!root.path("schemaVersion").isTextual() || !root.path("schemaVersion").asText().equals("1")) {
                 throw invalid(file.getName() + ".schemaVersion", "must be the string '1'");
             }
@@ -60,6 +61,10 @@ final class PolicyLoader {
             }
             if (!root.path("fingerprints").isArray()) {
                 throw invalid(file.getName() + ".fingerprints", "must be an array");
+            }
+            if (!root.path("fingerprintAlgorithm").isTextual()
+                    || !FindingFingerprint.supportsAlgorithm(root.path("fingerprintAlgorithm").asText())) {
+                throw invalid(file.getName() + ".fingerprintAlgorithm", "unsupported fingerprint algorithm");
             }
             return mapper.treeToValue(root, Baseline.class);
         } catch (Exception error) {

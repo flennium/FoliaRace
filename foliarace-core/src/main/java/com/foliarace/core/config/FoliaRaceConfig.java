@@ -14,6 +14,7 @@ public record FoliaRaceConfig(
         int observationQueueCapacity,
         double samplingRate,
         Set<OutputFormat> outputFormats,
+        int reportRetentionCount,
         boolean productionMode,
         boolean productionAcknowledged,
         String suppressionFile,
@@ -37,7 +38,7 @@ public record FoliaRaceConfig(
             boolean ciMode
     ) {
         this(enabledDetectors, overheadMode, maxSessionDurationSeconds, minimumSeverity, minimumConfidence,
-                observationQueueCapacity, samplingRate, outputFormats, productionMode, productionAcknowledged,
+                observationQueueCapacity, samplingRate, outputFormats, 10, productionMode, productionAcknowledged,
                 suppressionFile, baselineFile, ciMode, false);
     }
 
@@ -59,6 +60,9 @@ public record FoliaRaceConfig(
             throw new IllegalArgumentException("samplingRate must be between 0 and 1");
         }
         outputFormats = outputFormats == null || outputFormats.isEmpty() ? Set.of(OutputFormat.JSON) : Set.copyOf(outputFormats);
+        if (reportRetentionCount < 1) {
+            throw new IllegalArgumentException("reportRetentionCount must be positive");
+        }
         suppressionFile = suppressionFile == null ? "" : suppressionFile.trim();
         baselineFile = baselineFile == null ? "" : baselineFile.trim();
         if (productionMode && !productionAcknowledged) {
@@ -76,6 +80,7 @@ public record FoliaRaceConfig(
                 8192,
                 1.0,
                 Set.of(OutputFormat.JSON),
+                10,
                 false,
                 false,
                 "suppressions.yml",

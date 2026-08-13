@@ -27,6 +27,7 @@ final class PluginConfigLoader {
                 file.getInt("observation-queue-capacity"),
                 file.getDouble("sampling-rate"),
                 enumSet(file.getStringList("output-formats"), OutputFormat.class, "output-formats"),
+                file.getInt("report-retention-count"),
                 file.getBoolean("production-mode"),
                 file.getBoolean("production-acknowledged"),
                 file.getString("suppression-file", "suppressions.yml"),

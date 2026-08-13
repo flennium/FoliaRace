@@ -9,8 +9,20 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class JsonReportWriterTest {
+    @Test
+    void rejectsUnknownSchemaVersions() {
+        assertThrows(IllegalArgumentException.class, () -> new ReportDocument(
+                "2", UUID.randomUUID(), "test", Instant.now(), "stopped",
+                new RuntimeDescriptor("Folia", "test", "25", "test", "supported",
+                        com.foliarace.core.runtime.CompatibilityStatus.SUPPORTED, "profile", "", java.util.Set.of()),
+                java.util.List.of(), Map.of()
+        ));
+    }
+
     @Test
     void writesVersionedMachineReadableReport() throws Exception {
         UUID sessionId = UUID.randomUUID();
@@ -35,5 +47,10 @@ class JsonReportWriterTest {
 
         assertTrue(json.contains("\"schemaVersion\" : \"1\""));
         assertTrue(json.contains(sessionId.toString()));
+        var tree = new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
+        assertEquals("1", tree.path("schemaVersion").asText());
+        assertTrue(tree.has("runtime"));
+        assertTrue(tree.has("findings"));
+        assertTrue(tree.has("health"));
     }
 }

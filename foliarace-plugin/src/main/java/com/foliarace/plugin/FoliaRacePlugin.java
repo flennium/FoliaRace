@@ -8,6 +8,7 @@ import com.foliarace.core.finding.BaselineComparator;
 import com.foliarace.core.finding.BaselineComparison;
 import com.foliarace.core.finding.FindingGroupSnapshot;
 import com.foliarace.core.finding.FindingFilters;
+import com.foliarace.core.finding.FindingFingerprint;
 import com.foliarace.core.finding.Suppression;
 import com.foliarace.core.finding.SuppressionMatcher;
 import com.foliarace.core.config.OutputFormat;
@@ -18,6 +19,8 @@ import com.foliarace.core.pipeline.ObservationPipeline;
 import com.foliarace.core.report.JsonReportWriter;
 import com.foliarace.core.report.InstrumentationHealth;
 import com.foliarace.core.report.ReportDocument;
+import com.foliarace.core.report.ReportRotation;
+import com.foliarace.core.report.ReportSchema;
 import com.foliarace.core.session.DiagnosticSession;
 import com.foliarace.core.session.SessionManager;
 import com.foliarace.core.rule.CrossRegionOwnershipRule;
@@ -34,6 +37,8 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -285,9 +290,16 @@ public final class FoliaRacePlugin extends JavaPlugin {
             health.put("ciStatus", evaluation.status().name());
             health.put("ciExitCode", configManager.current().ciMode() ? evaluation.exitCode() : 0);
             health.put("instrumentationRequired", configManager.current().requireInstrumentation());
+            health.put("suppressionCount", suppressions.size());
+            health.put("baselinePresent", baseline != null);
+            health.put("baselineSchemaVersion", baseline == null ? "" : baseline.schemaVersion());
+            health.put("sessionStartedAt", lastSession.startedAt().toString());
+            health.put("sessionStoppedAt", lastSession.stoppedAt() == null ? "" : lastSession.stoppedAt().toString());
+            health.put("coverageStatus", runtimeAdapter.describe().coverageStatus());
+            health.put("fingerprintAlgorithm", FindingFingerprint.ALGORITHM_VERSION);
             health.putAll(instrumentation.asReportFields());
             ReportDocument report = new ReportDocument(
-                    "1",
+                    ReportSchema.CURRENT_VERSION,
                     lastSession.id(),
                     lastSession.label(),
                     Instant.now(),
@@ -302,11 +314,14 @@ public final class FoliaRacePlugin extends JavaPlugin {
                 Path destination = reportDirectory.resolve(lastSession.id() + (format == OutputFormat.JSON ? ".json" : ".md"));
                 if (format == OutputFormat.JSON) {
                     new JsonReportWriter().write(destination, report);
+                    Files.copy(destination, reportDirectory.resolve("latest.json"), StandardCopyOption.REPLACE_EXISTING);
                 } else {
                     new com.foliarace.core.report.MarkdownReportWriter().write(destination, report);
+                    Files.copy(destination, reportDirectory.resolve("latest.md"), StandardCopyOption.REPLACE_EXISTING);
                 }
                 written.add(destination);
             }
+            ReportRotation.retain(reportDirectory, configManager.current().reportRetentionCount());
             return "Wrote reports to " + written;
         } catch (Exception error) {
             getLogger().warning("Could not write FoliaRace report: " + error.getMessage());
@@ -354,6 +369,6 @@ public final class FoliaRacePlugin extends JavaPlugin {
                 (left, right) -> left
         ));
         Set<String> fingerprints = findings.stream().map(group -> group.representative().fingerprint().value()).collect(java.util.stream.Collectors.toUnmodifiableSet());
-        return new Baseline("1", detectorVersions, fingerprints);
+        return new Baseline("1", detectorVersions, fingerprints, FindingFingerprint.ALGORITHM_VERSION);
     }
 }

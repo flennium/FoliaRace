@@ -12,6 +12,7 @@ observation-queue-capacity: 8192
 sampling-rate: 1.0
 output-formats:
   - json
+report-retention-count: 10
 production-mode: false
 production-acknowledged: false
 suppression-file: suppressions.yml

@@ -19,6 +19,12 @@ public record ReportDocument(
         Map<String, Object> health
 ) {
     public ReportDocument {
+        if (schemaVersion == null || schemaVersion.isBlank() || !ReportSchema.supports(schemaVersion)) {
+            throw new IllegalArgumentException("unsupported report schema version: " + schemaVersion);
+        }
+        if (sessionId == null || generatedAt == null || status == null || runtime == null) {
+            throw new IllegalArgumentException("report identity and runtime fields are required");
+        }
         findings = findings == null ? List.of() : List.copyOf(findings);
         health = health == null ? Map.of() : Map.copyOf(health);
     }

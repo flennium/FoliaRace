@@ -11,7 +11,7 @@ Detectors consume observations produced by explicit plugin calls or the optional
 
 Unknown ownership is retained as unknown. It is not promoted to a violation solely because the runtime adapter lacks evidence. This is intentional: false certainty makes a diagnostic tool less useful.
 
-Each finding includes a detector ID and version, severity, confidence, evidence, a call site when available, and a stable fingerprint for suppression and baseline matching. Detector output is aggregated before report writing so repeated observations do not produce unbounded report growth.
+Each finding includes a detector ID and version, severity, confidence, evidence, a call site when available, and a stable fingerprint for suppression and baseline matching. Fingerprint algorithm `2` includes bounded normalized execution/target identity and selected scheduler metadata; changing that algorithm makes existing baselines incomparable. Detector output is aggregated before report writing so repeated observations do not produce unbounded report growth.
 
 ## Coverage boundaries
 

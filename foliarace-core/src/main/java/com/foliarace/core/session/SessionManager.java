@@ -30,7 +30,7 @@ public final class SessionManager {
     }
 
     public synchronized Optional<DiagnosticSession> stop() {
-        if (current == null) {
+        if (current == null || current.state() != SessionState.ACTIVE) {
             return Optional.empty();
         }
         current.stop(clock, SessionState.STOPPED);

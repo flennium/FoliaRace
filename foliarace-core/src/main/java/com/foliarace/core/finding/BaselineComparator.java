@@ -14,6 +14,9 @@ public final class BaselineComparator {
         if (!baseline.schemaVersion().equals(current.schemaVersion())) {
             return new BaselineComparison(false, Set.of(), Set.of(), "baseline schema versions differ");
         }
+        if (!baseline.fingerprintAlgorithm().equals(current.fingerprintAlgorithm())) {
+            return new BaselineComparison(false, Set.of(), Set.of(), "baseline fingerprint algorithms differ");
+        }
         for (Map.Entry<String, String> detector : baseline.detectorVersions().entrySet()) {
             if (!detector.getValue().equals(current.detectorVersions().get(detector.getKey()))) {
                 return new BaselineComparison(false, Set.of(), Set.of(), "detector versions differ for " + detector.getKey());

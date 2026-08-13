@@ -73,7 +73,7 @@ class PolicyLoaderTest {
     void loadsBaselineAndRejectsMalformedOrUnknownFields() throws Exception {
         Path directory = Files.createTempDirectory("foliarace-policy");
         Path valid = directory.resolve("baseline.json");
-        Files.writeString(valid, "{\"schemaVersion\":\"1\",\"detectorVersions\":{\"scheduler-misuse\":\"1\"},\"fingerprints\":[\"fp-1\"]}");
+        Files.writeString(valid, "{\"schemaVersion\":\"1\",\"fingerprintAlgorithm\":\"2\",\"detectorVersions\":{\"scheduler-misuse\":\"1\"},\"fingerprints\":[\"fp-1\"]}");
 
         var baseline = PolicyLoader.baseline(valid.toFile());
 
@@ -81,13 +81,13 @@ class PolicyLoaderTest {
         assertEquals(java.util.Set.of("fp-1"), baseline.fingerprints());
 
         Path malformed = directory.resolve("malformed.json");
-        Files.writeString(malformed, "{\"schemaVersion\":1,\"detectorVersions\":{},\"fingerprints\":[]}");
+        Files.writeString(malformed, "{\"schemaVersion\":1,\"fingerprintAlgorithm\":\"2\",\"detectorVersions\":{},\"fingerprints\":[]}");
         IllegalArgumentException malformedError = assertThrows(IllegalArgumentException.class,
                 () -> PolicyLoader.baseline(malformed.toFile()));
         assertTrue(malformedError.getMessage().contains("schemaVersion"));
 
         Path unknown = directory.resolve("unknown.json");
-        Files.writeString(unknown, "{\"schemaVersion\":\"1\",\"detectorVersions\":{},\"fingerprints\":[],\"runtime\":\"26.2\"}");
+        Files.writeString(unknown, "{\"schemaVersion\":\"1\",\"fingerprintAlgorithm\":\"2\",\"detectorVersions\":{},\"fingerprints\":[],\"runtime\":\"26.2\"}");
         IllegalArgumentException unknownError = assertThrows(IllegalArgumentException.class,
                 () -> PolicyLoader.baseline(unknown.toFile()));
         assertTrue(unknownError.getMessage().contains("unknown key"));

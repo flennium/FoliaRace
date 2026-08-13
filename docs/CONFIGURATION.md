@@ -12,6 +12,7 @@ The plugin copies the defaults from `foliarace-plugin/src/main/resources/config.
 | `observation-queue-capacity` | Bounded pipeline queue size. Overflow is counted in report health. |
 | `sampling-rate` | Fraction of eligible observations accepted before ownership resolution, from `0.0` through `1.0`. |
 | `output-formats` | Report formats such as `json` and `markdown`; each selected format is written on flush. |
+| `report-retention-count` | Number of completed session reports retained per format. `latest.json` and `latest.md` are stable pointers and are not counted. |
 | `production-mode` | Explicit acknowledgement gate for enabling production-mode configuration. It does not silently change detector policy. |
 | `production-acknowledged` | Must be true before production mode is accepted. |
 | `suppression-file` | File name for reviewed, expiring suppressions. |
@@ -29,4 +30,4 @@ Use [`config/suppressions.example.yml`](../config/suppressions.example.yml) as t
 
 ## Baselines
 
-Use [`config/baseline.example.json`](../config/baseline.example.json) to record an approved existing state while a plugin is being migrated. Its schema-version must be the string `"1"`, with only `detectorVersions` and `fingerprints` as data fields. New fingerprints remain visible, and stale baseline entries are reported so the file does not become permanent blind coverage.
+Use [`config/baseline.example.json`](../config/baseline.example.json) to record an approved existing state while a plugin is being migrated. Its schema-version must be the string `"1"`, and `fingerprintAlgorithm` must match the current report algorithm. New fingerprints remain visible, and stale or algorithm-incompatible baseline entries are reported so the file does not become permanent blind coverage.

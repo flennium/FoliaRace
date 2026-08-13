@@ -65,6 +65,17 @@ class ReportingPolicyTest {
     }
 
     @Test
+    void fingerprintAlgorithmChangesMakeBaselinesIncomparable() {
+        Baseline baseline = new Baseline("1", Map.of(), Set.of(), "1");
+        Baseline current = new Baseline("1", Map.of(), Set.of(), "2");
+
+        var comparison = BaselineComparator.compare(baseline, current);
+
+        assertFalse(comparison.comparable());
+        assertTrue(comparison.reason().contains("fingerprint algorithms"));
+    }
+
+    @Test
     void reportWritersProduceHumanAndMachineReadableArtifacts() throws Exception {
         FindingGroupSnapshot group = group("fp-1", "detector", "plugin", "Example#run");
         UUID session = UUID.randomUUID();
@@ -81,7 +92,10 @@ class ReportingPolicyTest {
         new MarkdownReportWriter().write(markdown, report);
 
         assertTrue(Files.readString(json).contains("schemaVersion"));
-        assertTrue(Files.readString(markdown).contains("instrumentationReason"));
+        String markdownText = Files.readString(markdown);
+        assertTrue(markdownText.contains("instrumentationReason"));
+        assertTrue(markdownText.contains("Explanation"));
+        assertTrue(markdownText.contains("Execution context"));
     }
 
     @Test

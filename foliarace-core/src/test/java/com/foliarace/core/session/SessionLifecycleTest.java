@@ -20,7 +20,7 @@ class SessionLifecycleTest {
         assertTrue(manager.stop().isPresent());
         assertEquals(SessionState.STOPPED, session.state());
         assertTrue(manager.current().isEmpty());
-        assertTrue(manager.stop().isPresent());
+        assertTrue(manager.stop().isEmpty());
         assertEquals(SessionState.STOPPED, session.state());
     }
 }

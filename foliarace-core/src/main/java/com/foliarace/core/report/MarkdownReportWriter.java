@@ -39,6 +39,26 @@ public final class MarkdownReportWriter implements ReportWriter {
                         .append(group.suppressed() ? "suppressed" : "active").append('|')
                         .append(escape(finding.summary())).append("|\n");
             }
+            markdown.append('\n');
+            for (FindingGroupSnapshot group : report.findings()) {
+                var finding = group.representative();
+                markdown.append("### ").append(escape(finding.detectorId())).append(" — ")
+                        .append(escape(finding.summary())).append("\n\n")
+                        .append("- Explanation: ").append(escape(finding.explanation())).append("\n")
+                        .append("- Execution context: `").append(escape(finding.executionContext())).append("`\n")
+                        .append("- Target ownership: `").append(escape(finding.targetOwnership())).append("` (`")
+                        .append(escape(finding.targetType())).append("`)\n")
+                        .append("- Call site: `").append(escape(finding.callSite())).append("`\n")
+                        .append("- Submission site: `").append(escape(finding.submissionSite())).append("`\n")
+                        .append("- Remediation: `").append(escape(finding.remediation().name())).append("`\n");
+                if (!finding.limitation().isBlank()) {
+                    markdown.append("- Limitation: ").append(escape(finding.limitation())).append("\n");
+                }
+                if (group.suppressed()) {
+                    markdown.append("- Suppression reason: ").append(escape(group.suppressionReason())).append("\n");
+                }
+                markdown.append('\n');
+            }
         }
         Path parent = destination.toAbsolutePath().getParent();
         if (parent != null) {
