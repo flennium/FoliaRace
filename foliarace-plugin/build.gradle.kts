@@ -8,6 +8,7 @@ dependencies {
     implementation(project(":foliarace-core"))
     val foliaApiVersion = providers.gradleProperty("foliaApiVersion").orElse("26.2.build.4-beta")
     compileOnly("dev.folia:folia-api:${foliaApiVersion.get()}")
+    testImplementation("dev.folia:folia-api:${foliaApiVersion.get()}")
 }
 
 tasks.shadowJar {

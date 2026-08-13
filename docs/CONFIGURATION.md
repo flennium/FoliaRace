@@ -25,8 +25,8 @@ Automatic instrumentation is optional by default. Set `require-instrumentation: 
 
 ## Suppressions
 
-Use [`config/suppressions.example.yml`](../config/suppressions.example.yml) as the starting point. Every suppression should identify the detector and plugin, include a reason, and have an expiry date. Suppression is an exception workflow, not a replacement for fixing the underlying access.
+Use [`config/suppressions.example.yml`](../config/suppressions.example.yml) as the starting point. The file requires `schema-version: 1`, and every entry requires `detector-id`, `plugin`, `call-site`, `reason`, `owner`, `created-at`, and `expires-at`. Unknown keys and non-expiring entries are rejected. Suppression is an exception workflow, not a replacement for fixing the underlying access.
 
 ## Baselines
 
-Use [`config/baseline.example.json`](../config/baseline.example.json) to record an approved existing state while a plugin is being migrated. New fingerprints remain visible, and stale baseline entries are reported so the file does not become permanent blind coverage.
+Use [`config/baseline.example.json`](../config/baseline.example.json) to record an approved existing state while a plugin is being migrated. Its schema-version must be the string `"1"`, with only `detectorVersions` and `fingerprints` as data fields. New fingerprints remain visible, and stale baseline entries are reported so the file does not become permanent blind coverage.

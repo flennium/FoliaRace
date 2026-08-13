@@ -211,3 +211,32 @@ tasks.register<JavaExec>("integrationTest") {
         ))
     }
 }
+
+tasks.register<JavaExec>("integrationTestAll") {
+    group = "verification"
+    description = "Runs every declared fixture scenario against one supplied Folia server. Requires -PfoliaServerJar."
+    dependsOn(":foliarace-plugin:shadowJar", ":foliarace-fixtures:jar", ":foliarace-agent:shadowJar", ":foliarace-harness:shadowJar")
+    val serverJar = providers.gradleProperty("foliaServerJar")
+    val mojangJar = providers.gradleProperty("mojangServerJar")
+    val mojangVersion = providers.gradleProperty("mojangServerVersion").orElse("1.21.11")
+    onlyIf {
+        if (serverJar.isPresent) true else {
+            logger.lifecycle("Skipping integrationTestAll: pass -PfoliaServerJar=<path-to-folia-server.jar>")
+            false
+        }
+    }
+    classpath = files(project(":foliarace-harness").tasks.named("shadowJar"))
+    mainClass.set("com.foliarace.harness.FoliaIntegrationHarness")
+    doFirst {
+        if (mojangJar.isPresent) {
+            jvmArgs("-Dfoliarace.mojangJar=${mojangJar.get()}", "-Dfoliarace.mojangVersion=${mojangVersion.get()}")
+        }
+        setArgs(listOf(
+                serverJar.get(),
+                project(":foliarace-plugin").layout.buildDirectory.file("libs/foliarace-plugin-${project.version}.jar").get().asFile.absolutePath,
+                project(":foliarace-fixtures").layout.buildDirectory.file("libs/foliarace-fixtures-${project.version}.jar").get().asFile.absolutePath,
+                "all",
+                project(":foliarace-agent").layout.buildDirectory.file("libs/foliarace-agent-${project.version}.jar").get().asFile.absolutePath
+        ))
+    }
+}

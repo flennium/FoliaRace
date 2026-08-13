@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -23,6 +24,13 @@ import java.util.stream.Stream;
  * Required arguments: server.jar foliarace.jar fixture.jar scenario agent.jar
  */
 public final class FoliaIntegrationHarness {
+    private static final List<String> SCENARIO_IDS = List.of("same-region-safe", "cross-region-unsafe", "async-state-access");
+    private static final Map<String, ScenarioExpectation> SCENARIOS = Map.of(
+            "same-region-safe", new ScenarioExpectation(null, "cross-region-ownership"),
+            "cross-region-unsafe", new ScenarioExpectation("cross-region-ownership", null),
+            "async-state-access", new ScenarioExpectation("async-server-state-access", null)
+    );
+
     private FoliaIntegrationHarness() {
     }
 
@@ -41,7 +49,34 @@ public final class FoliaIntegrationHarness {
         requireFile(fixtureJar);
         requireFile(agentJar);
 
-        Path runDirectory = Files.createTempDirectory("foliarace-folia-");
+        List<String> scenarios = scenario.equals("all") ? SCENARIO_IDS : List.of(scenario);
+        if (scenarios.stream().anyMatch(value -> !SCENARIOS.containsKey(value))) {
+            throw new IllegalArgumentException("unknown scenario '" + scenario + "'; expected one of " + SCENARIOS.keySet() + " or all");
+        }
+        boolean failed = false;
+        for (String selected : scenarios) {
+            try {
+                runScenario(serverJar, foliaRaceJar, fixtureJar, selected, agentJar);
+            } catch (Exception error) {
+                failed = true;
+                System.err.println("Folia integration scenario failed: " + selected + ": " + error.getMessage());
+                if (!scenario.equals("all")) {
+                    throw error;
+                }
+            }
+        }
+        if (failed) {
+            throw new IllegalStateException("one or more Folia integration scenarios failed");
+        }
+    }
+
+    private static void runScenario(Path serverJar, Path foliaRaceJar, Path fixtureJar,
+                                    String scenario, Path agentJar) throws Exception {
+        Path runDirectory = Files.createTempDirectory("foliarace-folia-" + scenario + "-");
+        boolean passed = false;
+        Process process = null;
+        ExecutorService outputExecutor = Executors.newSingleThreadExecutor();
+        Future<?> outputReader = null;
         try {
             seedMojangServerCache(runDirectory);
             Path plugins = Files.createDirectories(runDirectory.resolve("plugins"));
@@ -51,7 +86,7 @@ public final class FoliaIntegrationHarness {
             Files.writeString(fixtureDirectory.resolve("config.yml"), "scenario: " + scenario + System.lineSeparator());
             Files.writeString(runDirectory.resolve("eula.txt"), "eula=true" + System.lineSeparator());
             Files.writeString(runDirectory.resolve("server.properties"),
-                    "online-mode=false\nspawn-protection=0\n" + System.lineSeparator());
+                    "online-mode=false\nspawn-protection=0\nserver-ip=127.0.0.1\n" + System.lineSeparator());
 
             List<String> command = new java.util.ArrayList<>(List.of(
                     javaBinary(),
@@ -60,67 +95,100 @@ public final class FoliaIntegrationHarness {
                     serverJar.toString(),
                     "nogui"
             ));
-            Process process = new ProcessBuilder(command)
+            Path serverLog = runDirectory.resolve("server.log");
+            process = new ProcessBuilder(command)
                     .directory(runDirectory.toFile())
                     .redirectErrorStream(true)
                     .start();
-            ExecutorService outputExecutor = Executors.newSingleThreadExecutor();
             CountDownLatch readySignal = new CountDownLatch(1);
-            Future<?> outputReader = outputExecutor.submit(() -> streamOutput(process, readySignal));
+            CountDownLatch fixtureSignal = new CountDownLatch(1);
+            Process runningProcess = process;
+            outputReader = outputExecutor.submit(() -> streamOutput(runningProcess, readySignal, fixtureSignal, serverLog));
             try {
                 if (!readySignal.await(Duration.ofMinutes(2).toMillis(), TimeUnit.MILLISECONDS)) {
-                    throw new IllegalStateException("Folia server did not become ready");
+                    throw new IllegalStateException("Folia server did not become ready; see " + serverLog);
                 }
-
-                Thread.sleep(Duration.ofSeconds(8).toMillis());
+                if (!fixtureSignal.await(Duration.ofSeconds(30).toMillis(), TimeUnit.MILLISECONDS)) {
+                    throw new IllegalStateException("fixture scenario did not complete; see " + serverLog);
+                }
                 sendCommand(process, "stop");
                 if (!process.waitFor(30, TimeUnit.SECONDS)) {
                     throw new IllegalStateException("Folia server did not shut down cleanly");
+                }
+                if (process.exitValue() != 0) {
+                    throw new IllegalStateException("Folia server exited with code " + process.exitValue() + "; see " + serverLog);
                 }
 
                 Path reportDirectory = plugins.resolve("FoliaRace").resolve("reports");
                 List<Path> reports;
                 try (Stream<Path> files = Files.exists(reportDirectory) ? Files.list(reportDirectory) : Stream.empty()) {
-                    reports = files.filter(path -> path.toString().endsWith(".json")).toList();
+                    reports = files.filter(path -> path.toString().endsWith(".json"))
+                            .sorted(Comparator.comparingLong(FoliaIntegrationHarness::lastModified)
+                                    .thenComparing(Path::toString))
+                            .toList();
                 }
                 if (reports.isEmpty()) {
-                    throw new IllegalStateException("No FoliaRace report was produced");
+                    throw new IllegalStateException("no FoliaRace report was produced; see " + runDirectory);
                 }
-                String report = Files.readString(reports.getFirst());
-                if (scenario.equals("cross-region-unsafe") && !report.contains("cross-region-ownership")) {
-                    throw new IllegalStateException("Unsafe fixture produced no cross-region finding");
+                String report = Files.readString(reports.getLast());
+                ScenarioExpectation expectation = SCENARIOS.get(scenario);
+                if (expectation.requiredFinding() != null && !report.contains(expectation.requiredFinding())) {
+                    throw new IllegalStateException("expected detector gap: " + expectation.requiredFinding() + " was not reported; artifacts preserved at " + runDirectory);
                 }
-                if (scenario.equals("same-region-safe") && report.contains("cross-region-ownership")) {
-                    throw new IllegalStateException("Safe fixture produced a cross-region finding");
-                }
-                if (scenario.equals("async-state-access") && !report.contains("async-server-state-access")) {
-                    throw new IllegalStateException("Async fixture produced no async-state finding");
+                if (expectation.forbiddenFinding() != null && report.contains(expectation.forbiddenFinding())) {
+                    throw new IllegalStateException("safe scenario produced " + expectation.forbiddenFinding() + "; artifacts preserved at " + runDirectory);
                 }
                 System.out.println("Folia integration scenario passed: " + scenario);
+                passed = true;
             } finally {
                 if (process.isAlive()) {
                     process.destroyForcibly();
                 }
-                outputReader.cancel(true);
-                outputExecutor.shutdownNow();
+                if (outputReader != null) {
+                    outputReader.cancel(true);
+                }
             }
         } finally {
-            deleteTree(runDirectory);
+            outputExecutor.shutdownNow();
+            if (passed && !Boolean.getBoolean("foliarace.preserveArtifacts")) {
+                deleteTree(runDirectory);
+            } else {
+                System.err.println("Preserved Folia integration artifacts: " + runDirectory);
+            }
         }
     }
 
-    private static void streamOutput(Process process, CountDownLatch readySignal) {
-        try (var output = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+    private static void streamOutput(Process process, CountDownLatch readySignal,
+                                     CountDownLatch fixtureSignal, Path serverLog) {
+        try (var output = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
+             var log = Files.newBufferedWriter(serverLog, StandardCharsets.UTF_8)) {
             String line;
             while ((line = output.readLine()) != null) {
                 System.out.println(line);
+                log.write(line);
+                log.newLine();
+                log.flush();
                 if (line.contains("Done (")) {
                     readySignal.countDown();
+                }
+                if (line.contains("fixture scenario=")) {
+                    fixtureSignal.countDown();
                 }
             }
         } catch (IOException error) {
             System.err.println("Could not read Folia output: " + error.getMessage());
         }
+    }
+
+    private static long lastModified(Path path) {
+        try {
+            return Files.getLastModifiedTime(path).toMillis();
+        } catch (IOException error) {
+            return Long.MIN_VALUE;
+        }
+    }
+
+    private record ScenarioExpectation(String requiredFinding, String forbiddenFinding) {
     }
 
     private static void sendCommand(Process process, String command) throws IOException {

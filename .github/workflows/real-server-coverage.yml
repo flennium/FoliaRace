@@ -1,0 +1,66 @@
+name: Real-server coverage
+
+on:
+  workflow_dispatch:
+    inputs:
+      folia-server-url:
+        description: Licensed Folia server JAR URL for the selected API line
+        required: true
+        type: string
+      mojang-server-url:
+        description: Matching Mojang server JAR URL
+        required: true
+        type: string
+      folia-api-version:
+        description: Folia API Maven version matching the server JAR
+        required: true
+        default: 1.21.11-R0.1-SNAPSHOT
+        type: string
+      mojang-version:
+        description: Minecraft version used for the Mojang cache entry
+        required: true
+        default: 1.21.11
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  scenarios:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          - same-region-safe
+          - cross-region-unsafe
+          - async-state-access
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+      - name: Download licensed server inputs
+        env:
+          FOLIA_SERVER_URL: ${{ inputs.folia-server-url }}
+          MOJANG_SERVER_URL: ${{ inputs.mojang-server-url }}
+        run: |
+          curl --fail --location --retry 3 "$FOLIA_SERVER_URL" --output folia-server.jar
+          curl --fail --location --retry 3 "$MOJANG_SERVER_URL" --output mojang-server.jar
+      - name: Run real-server scenario
+        run: |
+          ./gradlew integrationTest --no-daemon --console=plain \
+            "-PfoliaApiVersion=${{ inputs.folia-api-version }}" \
+            "-PfoliaServerJar=$PWD/folia-server.jar" \
+            "-PmojangServerJar=$PWD/mojang-server.jar" \
+            "-PmojangServerVersion=${{ inputs.mojang-version }}" \
+            "-PfixtureScenario=${{ matrix.scenario }}"
+      - name: Upload failed run artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: foliarace-${{ inputs.mojang-version }}-${{ matrix.scenario }}
+          path: /tmp/foliarace-folia-*/
+          if-no-files-found: ignore
