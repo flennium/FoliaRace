@@ -31,7 +31,8 @@ final class PluginConfigLoader {
                 file.getBoolean("production-acknowledged"),
                 file.getString("suppression-file", "suppressions.yml"),
                 file.getString("baseline-file", "baseline.json"),
-                file.getBoolean("ci-mode")
+                file.getBoolean("ci-mode"),
+                file.getBoolean("require-instrumentation")
         );
     }
 

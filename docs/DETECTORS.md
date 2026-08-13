@@ -17,4 +17,12 @@ Each finding includes a detector ID and version, severity, confidence, evidence,
 
 The agent currently covers selected world, entity, block, chunk, inventory, and server accessors in CraftBukkit implementations. Method names and implementation classes can change between server lines. Explicit observations are the reliable fallback and should be used for plugin APIs or paths that are not covered by the agent.
 
+Plugins that submit work through a scheduler can record the submission metadata directly before calling Folia's scheduler API:
+
+```java
+FoliaRaceObservations.observeSchedulerSubmission(this, "region", "location");
+```
+
+Use `global`, `region`, or `async` for the scheduler and `location`, `block`, `chunk`, `entity`, `player`, `inventory`, `computation`, or `none` for the target kind. FoliaRace retains unknown runtime context instead of inferring ownership from a thread name alone.
+
 Real-server coverage is tracked separately from API compilation in [compatibility/real-server-coverage.md](compatibility/real-server-coverage.md).

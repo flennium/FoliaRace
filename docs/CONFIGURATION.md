@@ -17,8 +17,11 @@ The plugin copies the defaults from `foliarace-plugin/src/main/resources/config.
 | `suppression-file` | File name for reviewed, expiring suppressions. |
 | `baseline-file` | File name for the comparison baseline. |
 | `ci-mode` | Adds a CI evaluation to the report and makes unsuppressed findings policy failures. |
+| `require-instrumentation` | Makes a missing or failed automatic agent an instrumentation CI failure. Leave false for explicit-observation-only runs. |
 
 Configuration is validated before the plugin starts its detectors. Invalid values disable FoliaRace rather than silently selecting unsafe defaults.
+
+Automatic instrumentation is optional by default. Set `require-instrumentation: true` when a CI run must prove that the agent bridge is available; explicit-observation-only runs remain valid when it is false.
 
 ## Suppressions
 

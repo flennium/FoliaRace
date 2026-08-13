@@ -64,6 +64,30 @@ public final class FoliaRuntimeAdapter implements RuntimeAdapter<Location, Entit
     }
 
     @Override
+    public ExecutionContext classifyLocationContext(Location location, Instant observedAt) {
+        ExecutionContext current = classifyCurrentContext(observedAt);
+        if (current.type() != ExecutionContextType.UNKNOWN) {
+            return current;
+        }
+        if (Boolean.TRUE.equals(invokeOwnershipCheck(Location.class, location))) {
+            return new ExecutionContext(ExecutionContextType.REGION, "", current.threadName(), observedAt);
+        }
+        return current;
+    }
+
+    @Override
+    public ExecutionContext classifyEntityContext(Entity entity, Instant observedAt) {
+        ExecutionContext current = classifyCurrentContext(observedAt);
+        if (current.type() != ExecutionContextType.UNKNOWN) {
+            return current;
+        }
+        if (Boolean.TRUE.equals(invokeOwnershipCheck(Entity.class, entity))) {
+            return new ExecutionContext(ExecutionContextType.REGION, "", current.threadName(), observedAt);
+        }
+        return current;
+    }
+
+    @Override
     public OwnershipEvidence resolveLocationOwnership(Location location, Instant observedAt) {
         Boolean ownsTarget = invokeOwnershipCheck(Location.class, location);
         return ownsTarget == null

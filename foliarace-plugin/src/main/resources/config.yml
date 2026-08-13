@@ -17,3 +17,4 @@ production-acknowledged: false
 suppression-file: suppressions.yml
 baseline-file: baseline.json
 ci-mode: false
+require-instrumentation: false

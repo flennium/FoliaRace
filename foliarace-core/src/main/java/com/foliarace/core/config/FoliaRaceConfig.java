@@ -18,8 +18,29 @@ public record FoliaRaceConfig(
         boolean productionAcknowledged,
         String suppressionFile,
         String baselineFile,
-        boolean ciMode
+        boolean ciMode,
+        boolean requireInstrumentation
 ) {
+    public FoliaRaceConfig(
+            Set<String> enabledDetectors,
+            OverheadMode overheadMode,
+            long maxSessionDurationSeconds,
+            Severity minimumSeverity,
+            Confidence minimumConfidence,
+            int observationQueueCapacity,
+            double samplingRate,
+            Set<OutputFormat> outputFormats,
+            boolean productionMode,
+            boolean productionAcknowledged,
+            String suppressionFile,
+            String baselineFile,
+            boolean ciMode
+    ) {
+        this(enabledDetectors, overheadMode, maxSessionDurationSeconds, minimumSeverity, minimumConfidence,
+                observationQueueCapacity, samplingRate, outputFormats, productionMode, productionAcknowledged,
+                suppressionFile, baselineFile, ciMode, false);
+    }
+
     public FoliaRaceConfig {
         enabledDetectors = enabledDetectors == null ? Set.of() : Set.copyOf(enabledDetectors);
         if (enabledDetectors.stream().anyMatch(value -> value == null || value.isBlank())) {
@@ -59,6 +80,7 @@ public record FoliaRaceConfig(
                 false,
                 "suppressions.yml",
                 "baseline.json",
+                false,
                 false
         );
     }

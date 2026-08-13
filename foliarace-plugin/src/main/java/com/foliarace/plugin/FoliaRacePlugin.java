@@ -16,6 +16,7 @@ import com.foliarace.core.ci.CiEvaluation;
 import com.foliarace.core.ci.CiEvaluator;
 import com.foliarace.core.pipeline.ObservationPipeline;
 import com.foliarace.core.report.JsonReportWriter;
+import com.foliarace.core.report.InstrumentationHealth;
 import com.foliarace.core.report.ReportDocument;
 import com.foliarace.core.session.DiagnosticSession;
 import com.foliarace.core.session.SessionManager;
@@ -34,6 +35,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +49,6 @@ public final class FoliaRacePlugin extends JavaPlugin {
     private FoliaRuntimeAdapter runtimeAdapter;
     private DiagnosticSession lastSession;
     private AgentBridgeInstaller agentBridge;
-    private boolean instrumentationAvailable;
     private List<Suppression> suppressions = List.of();
     private Baseline baseline;
 
@@ -87,7 +88,7 @@ public final class FoliaRacePlugin extends JavaPlugin {
         observationPipeline.start();
         FoliaRaceObservations.install(this);
         agentBridge = new AgentBridgeInstaller();
-        instrumentationAvailable = agentBridge.install(this);
+        agentBridge.install(this);
         startSession("startup");
 
         PluginCommand command = getCommand("foliarace");
@@ -108,15 +109,15 @@ public final class FoliaRacePlugin extends JavaPlugin {
         if (sessionManager != null) {
             stopSession();
         }
-        if (agentBridge != null) {
-            agentBridge.uninstall();
-        }
         FoliaRaceObservations.uninstall(this);
         if (observationPipeline != null) {
             observationPipeline.close();
         }
         if (lastSession != null) {
             flushReport();
+        }
+        if (agentBridge != null) {
+            agentBridge.uninstall();
         }
     }
 
@@ -275,6 +276,16 @@ public final class FoliaRacePlugin extends JavaPlugin {
         try {
             List<FindingGroupSnapshot> findings = reportFindings();
             CiEvaluation evaluation = ciEvaluation(findings);
+            InstrumentationHealth instrumentation = instrumentationHealth();
+            Map<String, Object> health = new HashMap<>();
+            health.put("droppedObservations", observationPipeline.droppedObservations());
+            health.put("ruleFailures", observationPipeline.ruleFailures());
+            health.put("pendingObservations", observationPipeline.pendingObservations());
+            health.put("ciMode", configManager.current().ciMode());
+            health.put("ciStatus", evaluation.status().name());
+            health.put("ciExitCode", configManager.current().ciMode() ? evaluation.exitCode() : 0);
+            health.put("instrumentationRequired", configManager.current().requireInstrumentation());
+            health.putAll(instrumentation.asReportFields());
             ReportDocument report = new ReportDocument(
                     "1",
                     lastSession.id(),
@@ -283,14 +294,7 @@ public final class FoliaRacePlugin extends JavaPlugin {
                     lastSession.state().name().toLowerCase(java.util.Locale.ROOT),
                     runtimeAdapter.describe(),
                     findings,
-                    Map.of(
-                            "droppedObservations", observationPipeline.droppedObservations(),
-                            "ruleFailures", observationPipeline.ruleFailures(),
-                            "pendingObservations", observationPipeline.pendingObservations(),
-                            "ciMode", configManager.current().ciMode(),
-                            "ciStatus", evaluation.status().name(),
-                            "ciExitCode", configManager.current().ciMode() ? evaluation.exitCode() : 0
-                    )
+                    health
             );
             Path reportDirectory = getDataFolder().toPath().resolve("reports");
             List<Path> written = new java.util.ArrayList<>();
@@ -334,7 +338,13 @@ public final class FoliaRacePlugin extends JavaPlugin {
                 ? null
                 : BaselineComparator.compare(baseline, currentBaseline(findings));
         boolean incomplete = runtimeAdapter.describe().compatibilityStatus() != com.foliarace.core.runtime.CompatibilityStatus.SUPPORTED;
-        return CiEvaluator.evaluate(findings, comparison, incomplete, !instrumentationAvailable);
+        boolean instrumentationFailure = configManager.current().requireInstrumentation()
+                && !instrumentationHealth().installed();
+        return CiEvaluator.evaluate(findings, comparison, incomplete, instrumentationFailure);
+    }
+
+    private InstrumentationHealth instrumentationHealth() {
+        return agentBridge == null ? InstrumentationHealth.unavailable("agent bridge not initialized") : agentBridge.health();
     }
 
     private static Baseline currentBaseline(List<FindingGroupSnapshot> findings) {

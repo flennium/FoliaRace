@@ -10,6 +10,14 @@ public interface RuntimeAdapter<L, E> {
 
     ExecutionContext classifyCurrentContext(Instant observedAt);
 
+    default ExecutionContext classifyLocationContext(L location, Instant observedAt) {
+        return classifyCurrentContext(observedAt);
+    }
+
+    default ExecutionContext classifyEntityContext(E entity, Instant observedAt) {
+        return classifyCurrentContext(observedAt);
+    }
+
     OwnershipEvidence resolveLocationOwnership(L location, Instant observedAt);
 
     OwnershipEvidence resolveEntityOwnership(E entity, Instant observedAt);

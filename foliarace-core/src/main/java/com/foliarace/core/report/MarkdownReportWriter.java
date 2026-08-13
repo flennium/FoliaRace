@@ -16,6 +16,13 @@ public final class MarkdownReportWriter implements ReportWriter {
         markdown.append("- Status: `").append(escape(report.status())).append("`\n");
         markdown.append("- Runtime: `").append(escape(report.runtime().platform())).append(" ")
                 .append(escape(report.runtime().runtimeVersion())).append("`\n\n");
+        markdown.append("## Health\n\n");
+        markdown.append("| Metric | Value |\n");
+        markdown.append("| --- | --- |\n");
+        report.health().forEach((key, value) -> markdown.append('|')
+                .append(escape(key)).append('|')
+                .append(escape(String.valueOf(value))).append("|\n"));
+        markdown.append('\n');
         markdown.append("## Findings\n\n");
         if (report.findings().isEmpty()) {
             markdown.append("No findings were observed.\n");

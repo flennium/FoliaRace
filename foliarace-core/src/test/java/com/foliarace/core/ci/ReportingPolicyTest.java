@@ -8,6 +8,7 @@ import com.foliarace.core.finding.FindingFilters;
 import com.foliarace.core.finding.Suppression;
 import com.foliarace.core.finding.SuppressionMatcher;
 import com.foliarace.core.report.JsonReportWriter;
+import com.foliarace.core.report.InstrumentationHealth;
 import com.foliarace.core.report.MarkdownReportWriter;
 import com.foliarace.core.report.ReportDocument;
 import com.foliarace.core.runtime.CompatibilityStatus;
@@ -70,7 +71,7 @@ class ReportingPolicyTest {
         ReportDocument report = new ReportDocument(
                 "1", session, "test", NOW, "stopped",
                 new RuntimeDescriptor("Folia", "26.2", "25", "test", "supported", CompatibilityStatus.SUPPORTED, "profile", "", Set.of()),
-                List.of(group), Map.of()
+                List.of(group), Map.of("instrumentationInstalled", false, "instrumentationReason", "agent unavailable")
         );
         var directory = Files.createTempDirectory("foliarace-report-policy");
         var json = directory.resolve("report.json");
@@ -80,7 +81,7 @@ class ReportingPolicyTest {
         new MarkdownReportWriter().write(markdown, report);
 
         assertTrue(Files.readString(json).contains("schemaVersion"));
-        assertTrue(Files.readString(markdown).contains("summary"));
+        assertTrue(Files.readString(markdown).contains("instrumentationReason"));
     }
 
     @Test
@@ -99,6 +100,14 @@ class ReportingPolicyTest {
                 com.foliarace.core.finding.Severity.HIGH,
                 com.foliarace.core.evidence.Confidence.CONFIRMED
         ));
+    }
+
+    @Test
+    void instrumentationFailureIsOnlyCiFailureWhenRequested() {
+        assertEquals(CiStatus.CLEAN, CiEvaluator.evaluate(List.of(), null, false, false).status());
+        assertEquals(CiStatus.INSTRUMENTATION_FAILURE, CiEvaluator.evaluate(List.of(), null, false, true).status());
+
+        assertFalse(new InstrumentationHealth(false, 0, 0, 0, 0, 0, "agent unavailable").installed());
     }
 
     private static FindingGroupSnapshot group(String fingerprint, String detector, String plugin, String callSite) {

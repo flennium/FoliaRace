@@ -4,13 +4,14 @@ import com.foliarace.core.observation.CallSite;
 import com.foliarace.core.observation.Observation;
 import com.foliarace.core.observation.ObservationOrigin;
 import com.foliarace.core.observation.OperationCategory;
+import com.foliarace.core.context.ExecutionContext;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.Plugin;
 
 import java.time.Instant;
-import java.util.List;
+import java.util.Map;
 
 /**
  * Explicit observation entry points for fixture plugins and targeted integrations.
@@ -41,7 +42,10 @@ public final class FoliaRaceObservations {
         if (!plugin.acceptSample()) {
             return ObservationReceipt.unavailable("observation sampled out by configuration");
         }
-        return observe(plugin, source, location, category, plugin.runtimeAdapter().resolveLocationOwnership(location, Instant.now()));
+        Instant observedAt = Instant.now();
+        return observe(plugin, source, location, category,
+                plugin.runtimeAdapter().classifyLocationContext(location, observedAt),
+                plugin.runtimeAdapter().resolveLocationOwnership(location, observedAt));
     }
 
     public static ObservationReceipt observeEntityAccess(Plugin source, Entity entity, OperationCategory category) {
@@ -55,7 +59,10 @@ public final class FoliaRaceObservations {
         if (!plugin.acceptSample()) {
             return ObservationReceipt.unavailable("observation sampled out by configuration");
         }
-        return observe(plugin, source, entity, category, plugin.runtimeAdapter().resolveEntityOwnership(entity, Instant.now()));
+        Instant observedAt = Instant.now();
+        return observe(plugin, source, entity, category,
+                plugin.runtimeAdapter().classifyEntityContext(entity, observedAt),
+                plugin.runtimeAdapter().resolveEntityOwnership(entity, observedAt));
     }
 
     public static ObservationReceipt observeGlobalAccess(Plugin source, OperationCategory category) {
@@ -66,7 +73,32 @@ public final class FoliaRaceObservations {
         if (!plugin.acceptSample()) {
             return ObservationReceipt.unavailable("observation sampled out by configuration");
         }
-        return observe(plugin, source, new Object(), category, com.foliarace.core.evidence.OwnershipEvidence.unknown(Instant.now()));
+        Instant observedAt = Instant.now();
+        return observe(plugin, source, new Object(), category,
+                plugin.runtimeAdapter().classifyCurrentContext(observedAt),
+                com.foliarace.core.evidence.OwnershipEvidence.unknown(observedAt));
+    }
+
+    public static ObservationReceipt observeSchedulerSubmission(
+            Plugin source,
+            String scheduler,
+            String targetKind
+    ) {
+        FoliaRacePlugin plugin = runtime;
+        if (plugin == null) {
+            return ObservationReceipt.unavailable("FoliaRace is not enabled");
+        }
+        if (!plugin.acceptSample()) {
+            return ObservationReceipt.unavailable("observation sampled out by configuration");
+        }
+        Instant observedAt = Instant.now();
+        return observe(plugin, source, new Object(), OperationCategory.SCHEDULER_SUBMISSION,
+                plugin.runtimeAdapter().classifyCurrentContext(observedAt),
+                com.foliarace.core.evidence.OwnershipEvidence.unknown(observedAt),
+                Map.of(
+                        "scheduler", normalize(scheduler),
+                        "targetKind", normalize(targetKind)
+                ));
     }
 
     public static ObservationReceipt observeInventoryAccess(Plugin source, Inventory inventory) {
@@ -84,7 +116,21 @@ public final class FoliaRaceObservations {
             Plugin source,
             Object target,
             OperationCategory category,
+            ExecutionContext executionContext,
             com.foliarace.core.evidence.OwnershipEvidence ownership
+    ) {
+        return observe(plugin, source, target, category, executionContext, ownership,
+                Map.of("targetClass", target.getClass().getName()));
+    }
+
+    private static ObservationReceipt observe(
+            FoliaRacePlugin plugin,
+            Plugin source,
+            Object target,
+            OperationCategory category,
+            ExecutionContext executionContext,
+            com.foliarace.core.evidence.OwnershipEvidence ownership,
+            Map<String, String> metadata
     ) {
         if (source == null) {
             return ObservationReceipt.unavailable("source plugin is null");
@@ -99,11 +145,11 @@ public final class FoliaRaceObservations {
                 pluginName,
                 pluginName,
                 category == null ? OperationCategory.UNKNOWN : category,
-                plugin.runtimeAdapter().classifyCurrentContext(now),
+                executionContext,
                 ownership,
                 new ObservationOrigin(pluginName, pluginName, "explicit-observation", "unknown", "", callSite),
                 callSite,
-                java.util.Map.of("targetClass", target.getClass().getName())
+                metadata
         );
         boolean accepted = plugin.recordObservation(observation);
         boolean available = ownership.source() == com.foliarace.core.evidence.ResolutionSource.AUTHORITATIVE_API;
@@ -113,6 +159,10 @@ public final class FoliaRaceObservations {
                 ownership.currentContextOwnsTarget(),
                 accepted ? (available ? "submitted" : "submitted with unknown ownership") : "pipeline rejected observation"
         );
+    }
+
+    private static String normalize(String value) {
+        return value == null || value.isBlank() ? "unknown" : value.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
 }
