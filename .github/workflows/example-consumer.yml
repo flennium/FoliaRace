@@ -1,0 +1,25 @@
+name: Example consumer smoke test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  consumer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+      - name: Publish local consumer artifacts
+        run: ./gradlew :foliarace-plugin:publishPluginPublicationToMavenLocal --no-daemon
+      - name: Build standalone example against compileOnly API
+        working-directory: FoliaRaceExamplePlugin
+        run: ./gradlew build -PuseMavenLocal --no-daemon

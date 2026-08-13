@@ -60,4 +60,6 @@ To publish all module publications from a developer machine:
   -Pgpr.key=$env:GITHUB_TOKEN
 ```
 
+The root build verifies module artifacts and plugin descriptors. The manual `Example consumer smoke test` workflow initializes the linked standalone example, publishes the plugin to Maven Local, and builds the example with `compileOnly` to verify the public consumer boundary without bundling FoliaRace.
+
 For normal server installation, download the standalone FoliaRace plugin JAR from the GitHub Release assets, or use the release ZIP for the complete operational bundle. The ZIP is not a replacement for the Maven repository; it is the assembled operational bundle.
