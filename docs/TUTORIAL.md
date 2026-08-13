@@ -12,7 +12,7 @@ Run the unit tests and assemble the release bundle:
 ./gradlew test release
 ```
 
-The plugin is in `build/release/FoliaRace-0.1.0.zip`. Unpack it and copy the plugin JAR to a Folia test server. Keep the agent disabled for the first run so that explicit observations and report generation can be verified independently.
+The plugin is in `build/release/FoliaRace-0.1.1.zip`. Unpack it and copy the plugin JAR to a Folia test server. Keep the agent disabled for the first run so that explicit observations and report generation can be verified independently.
 
 ## 2. Configure a session
 

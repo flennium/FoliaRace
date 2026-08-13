@@ -45,7 +45,7 @@ The release task writes `build/release/FoliaRace-<version>.zip` and a SHA-256 ch
 The optional agent instruments selected CraftBukkit accessors without changing their return values. Keep explicit observations for plugin-specific paths outside the agent's coverage:
 
 ```powershell
-java -javaagent:foliarace-agent-0.1.0.jar -jar folia-server.jar nogui
+java -javaagent:foliarace-agent-0.1.1.jar -jar folia-server.jar nogui
 ```
 
 ## Real-server harness

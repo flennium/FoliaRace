@@ -12,11 +12,11 @@ Packages are published by `.github/workflows/publish.yml` when a GitHub release 
 The published coordinates use the project group `com.foliarace`:
 
 ```text
-com.foliarace:foliarace-core:0.1.0
-com.foliarace:foliarace-plugin:0.1.0
-com.foliarace:foliarace-agent:0.1.0
-com.foliarace:foliarace-fixtures:0.1.0
-com.foliarace:foliarace-harness:0.1.0
+com.foliarace:foliarace-core:0.1.1
+com.foliarace:foliarace-plugin:0.1.1
+com.foliarace:foliarace-agent:0.1.1
+com.foliarace:foliarace-fixtures:0.1.1
+com.foliarace:foliarace-harness:0.1.1
 ```
 
 Configure a consuming Gradle build with credentials supplied outside source control:
@@ -35,7 +35,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.foliarace:foliarace-plugin:0.1.0")
+    compileOnly("com.foliarace:foliarace-plugin:0.1.1")
 }
 ```
 

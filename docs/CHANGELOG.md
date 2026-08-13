@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 - 2026-08-13
+
+- Published the current package and release assets.
+- Moved standalone example run artifacts to the example-plugin repository.
+
 ## 0.1.0 - 2026-08-12
 
 The first release provides:
