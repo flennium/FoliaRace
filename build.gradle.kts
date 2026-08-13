@@ -14,6 +14,8 @@ allprojects {
     version = providers.gradleProperty("version").get()
 }
 
+val foliaraceJavaVersion = providers.gradleProperty("foliaraceJavaVersion").map(String::toInt).orElse(25)
+
 subprojects {
     apply(plugin = "java-library")
     apply(plugin = "maven-publish")
@@ -37,14 +39,14 @@ subprojects {
 
     extensions.configure<JavaPluginExtension> {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(25))
+            languageVersion.set(JavaLanguageVersion.of(foliaraceJavaVersion.get()))
         }
         withSourcesJar()
     }
 
     tasks.withType<JavaCompile>().configureEach {
         options.encoding = "UTF-8"
-        options.release.set(25)
+        options.release.set(foliaraceJavaVersion.get())
     }
 
     tasks.withType<Test>().configureEach {
@@ -64,7 +66,7 @@ val javaToolchainService = project(":foliarace-core").extensions.getByType<JavaT
 
 tasks.withType<JavaExec>().configureEach {
     javaLauncher.set(javaToolchainService.launcherFor {
-        languageVersion.set(JavaLanguageVersion.of(25))
+        languageVersion.set(JavaLanguageVersion.of(foliaraceJavaVersion.get()))
     })
 }
 

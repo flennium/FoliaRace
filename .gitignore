@@ -8,3 +8,5 @@ run/
 *.iws
 reports/
 *.log
+PROJECT_SUGGESTIONS.md
+SECURITY_AUDIT.md

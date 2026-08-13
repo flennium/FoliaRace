@@ -4,6 +4,7 @@ import com.foliarace.core.finding.Baseline;
 import com.foliarace.core.finding.BaselineComparator;
 import com.foliarace.core.finding.Finding;
 import com.foliarace.core.finding.FindingGroupSnapshot;
+import com.foliarace.core.finding.FindingFilters;
 import com.foliarace.core.finding.Suppression;
 import com.foliarace.core.finding.SuppressionMatcher;
 import com.foliarace.core.report.JsonReportWriter;
@@ -80,6 +81,24 @@ class ReportingPolicyTest {
 
         assertTrue(Files.readString(json).contains("schemaVersion"));
         assertTrue(Files.readString(markdown).contains("summary"));
+    }
+
+    @Test
+    void findingFiltersApplyConfiguredSeverityAndConfidenceThresholds() {
+        FindingGroupSnapshot highConfirmed = group("high", "detector", "plugin", "Example#high");
+        Finding finding = new Finding(
+                new com.foliarace.core.finding.FindingFingerprint("info"), "detector", "1",
+                com.foliarace.core.finding.Severity.INFO, com.foliarace.core.evidence.Confidence.INFORMATIONAL,
+                "plugin", "plugin", "BLOCK_ACCESS", "summary", "explanation", "REGION:region-a", "", "UNKNOWN",
+                "Example#info", "submission", NOW, com.foliarace.core.finding.RemediationCategory.REVIEW_THREAD_SAFETY, ""
+        );
+        FindingGroupSnapshot info = new FindingGroupSnapshot(finding, NOW, NOW, 1);
+
+        assertEquals(List.of(highConfirmed), FindingFilters.apply(
+                List.of(highConfirmed, info),
+                com.foliarace.core.finding.Severity.HIGH,
+                com.foliarace.core.evidence.Confidence.CONFIRMED
+        ));
     }
 
     private static FindingGroupSnapshot group(String fingerprint, String detector, String plugin, String callSite) {

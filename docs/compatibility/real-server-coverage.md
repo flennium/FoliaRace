@@ -21,4 +21,4 @@ Run one line with matching server and Mojang dependencies:
   '-PfixtureScenario=cross-region-unsafe'
 ```
 
-The 1.19.x through 1.21.5 lines, and the 26.x lines, remain API/resolver targets until they receive dedicated server downloads and runtime scenarios. They are not real-server verified by this table.
+The 1.21.4, 1.21.5, and 26.x lines remain API/resolver targets until they receive dedicated server downloads and runtime scenarios. Older than 1.21.4 is outside the current release artifact contract because the plugin is compiled for Java 25 and declares API version 1.21.

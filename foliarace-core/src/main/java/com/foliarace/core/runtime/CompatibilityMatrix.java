@@ -19,18 +19,13 @@ public final class CompatibilityMatrix {
     );
 
     private static final List<CompatibilityProfile> PROFILES = List.of(
-            profile("folia-1.19.4", "1.19.4", "1.19.4-R0.1-SNAPSHOT", 17, "legacy API line"),
-            profile("folia-1.20.1", "1.20.1", "1.20.1-R0.1-SNAPSHOT", 17, "legacy API line"),
-            profile("folia-1.20.2", "1.20.2", "1.20.2-R0.1-SNAPSHOT", 17, "legacy API line"),
-            profile("folia-1.20.4", "1.20.4", "1.20.4-R0.1-SNAPSHOT", 17, "legacy API line"),
-            profile("folia-1.20.6", "1.20.6", "1.20.6-R0.1-SNAPSHOT", 21, "Java 21 API line"),
-            profile("folia-1.21.4", "1.21.4", "1.21.4-R0.1-SNAPSHOT", 21, "legacy API coordinate"),
-            profile("folia-1.21.5", "1.21.5", "1.21.5-R0.1-SNAPSHOT", 21, "legacy API coordinate"),
-            profile("folia-1.21.6", "1.21.6", "1.21.6-R0.1-SNAPSHOT", 21, "legacy API coordinate"),
-            profile("folia-1.21.8", "1.21.8", "1.21.8-R0.1-SNAPSHOT", 21, "legacy API coordinate"),
-            profile("folia-1.21.11", "1.21.11", "1.21.11-R0.1-SNAPSHOT", 21, "final legacy coordinate"),
-            profile("folia-26.1.2", "26.1", "26.1.2.build.8-stable", 25, "current versioned build coordinate"),
-            profile("folia-26.2", "26.2", "26.2.build.4-beta", 25, "current beta build coordinate")
+            profile("folia-1.21.4", "1.21.4", "1.21.4-R0.1-SNAPSHOT", "supported 1.21 API line"),
+            profile("folia-1.21.5", "1.21.5", "1.21.5-R0.1-SNAPSHOT", "supported 1.21 API line"),
+            profile("folia-1.21.6", "1.21.6", "1.21.6-R0.1-SNAPSHOT", "supported 1.21 API line"),
+            profile("folia-1.21.8", "1.21.8", "1.21.8-R0.1-SNAPSHOT", "supported 1.21 API line"),
+            profile("folia-1.21.11", "1.21.11", "1.21.11-R0.1-SNAPSHOT", "supported 1.21 API line"),
+            profile("folia-26.1.2", "26.1", "26.1.2.build.8-stable", "supported current versioned build"),
+            profile("folia-26.2", "26.2", "26.2.build.4-beta", "supported current beta build")
     );
 
     private CompatibilityMatrix() {
@@ -84,7 +79,7 @@ public final class CompatibilityMatrix {
                 .orElse(null);
     }
 
-    private static CompatibilityProfile profile(String id, String minecraftLine, String apiCoordinate, int minimumJava, String notes) {
-        return new CompatibilityProfile(id, minecraftLine, apiCoordinate, minimumJava, SCHEDULER_CAPABILITIES, notes);
+    private static CompatibilityProfile profile(String id, String minecraftLine, String apiCoordinate, String notes) {
+        return new CompatibilityProfile(id, minecraftLine, apiCoordinate, 25, SCHEDULER_CAPABILITIES, notes);
     }
 }

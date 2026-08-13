@@ -20,7 +20,7 @@ FoliaRace is a development-time diagnostic plugin for Folia and Bukkit plugins. 
 
 ## Requirements
 
-- Java 25 for the default build and release artifacts
+- Java 25 for the default build and release artifacts; the current artifact contract covers Folia 1.21.4+ and 26.x
 - A Folia server for real-server integration tests
 - Git and the included Gradle wrapper
 

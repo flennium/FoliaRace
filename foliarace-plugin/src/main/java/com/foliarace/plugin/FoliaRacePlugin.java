@@ -7,8 +7,11 @@ import com.foliarace.core.finding.Baseline;
 import com.foliarace.core.finding.BaselineComparator;
 import com.foliarace.core.finding.BaselineComparison;
 import com.foliarace.core.finding.FindingGroupSnapshot;
+import com.foliarace.core.finding.FindingFilters;
 import com.foliarace.core.finding.Suppression;
 import com.foliarace.core.finding.SuppressionMatcher;
+import com.foliarace.core.config.OutputFormat;
+import com.foliarace.core.observation.CallSite;
 import com.foliarace.core.ci.CiEvaluation;
 import com.foliarace.core.ci.CiEvaluator;
 import com.foliarace.core.pipeline.ObservationPipeline;
@@ -34,6 +37,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class FoliaRacePlugin extends JavaPlugin {
     private ConfigManager configManager;
@@ -118,6 +122,23 @@ public final class FoliaRacePlugin extends JavaPlugin {
 
     boolean recordObservation(com.foliarace.core.observation.Observation observation) {
         return observationPipeline != null && observationPipeline.submit(observation);
+    }
+
+    boolean acceptSample() {
+        return ThreadLocalRandom.current().nextDouble() < configManager.current().samplingRate();
+    }
+
+    CallSite captureCallSite() {
+        if (configManager.current().overheadMode() == com.foliarace.core.config.OverheadMode.MINIMAL) {
+            return CallSite.unknown();
+        }
+        int depth = configManager.current().overheadMode() == com.foliarace.core.config.OverheadMode.EXHAUSTIVE ? 24 : 8;
+        List<String> frames = StackWalker.getInstance().walk(stream -> stream
+                .filter(frame -> !frame.getClassName().startsWith("com.foliarace.plugin."))
+                .limit(depth)
+                .map(frame -> frame.getClassName() + "#" + frame.getMethodName())
+                .toList());
+        return new CallSite(frames.isEmpty() ? "unknown" : frames.getFirst(), frames);
     }
 
     FoliaRuntimeAdapter runtimeAdapter() {
@@ -229,8 +250,13 @@ public final class FoliaRacePlugin extends JavaPlugin {
     }
 
     String startSession(String label) {
-        lastSession = sessionManager.start(label, configManager.current());
-        return "Started FoliaRace session " + lastSession.id();
+        try {
+            lastSession = sessionManager.start(label, configManager.current());
+            scheduleSessionExpiry(lastSession);
+            return "Started FoliaRace session " + lastSession.id();
+        } catch (IllegalStateException error) {
+            return "Could not start session: " + error.getMessage();
+        }
     }
 
     String stopSession() {
@@ -247,16 +273,16 @@ public final class FoliaRacePlugin extends JavaPlugin {
             return "No report available";
         }
         try {
-            Path reportPath = getDataFolder().toPath().resolve("reports").resolve(lastSession.id() + ".json");
-            CiEvaluation evaluation = ciEvaluation(reportFindings());
-            new JsonReportWriter().write(reportPath, new ReportDocument(
+            List<FindingGroupSnapshot> findings = reportFindings();
+            CiEvaluation evaluation = ciEvaluation(findings);
+            ReportDocument report = new ReportDocument(
                     "1",
                     lastSession.id(),
                     lastSession.label(),
                     Instant.now(),
                     lastSession.state().name().toLowerCase(java.util.Locale.ROOT),
                     runtimeAdapter.describe(),
-                    reportFindings(),
+                    findings,
                     Map.of(
                             "droppedObservations", observationPipeline.droppedObservations(),
                             "ruleFailures", observationPipeline.ruleFailures(),
@@ -265,8 +291,19 @@ public final class FoliaRacePlugin extends JavaPlugin {
                             "ciStatus", evaluation.status().name(),
                             "ciExitCode", configManager.current().ciMode() ? evaluation.exitCode() : 0
                     )
-            ));
-            return "Wrote report to " + reportPath;
+            );
+            Path reportDirectory = getDataFolder().toPath().resolve("reports");
+            List<Path> written = new java.util.ArrayList<>();
+            for (OutputFormat format : configManager.current().outputFormats()) {
+                Path destination = reportDirectory.resolve(lastSession.id() + (format == OutputFormat.JSON ? ".json" : ".md"));
+                if (format == OutputFormat.JSON) {
+                    new JsonReportWriter().write(destination, report);
+                } else {
+                    new com.foliarace.core.report.MarkdownReportWriter().write(destination, report);
+                }
+                written.add(destination);
+            }
+            return "Wrote reports to " + written;
         } catch (Exception error) {
             getLogger().warning("Could not write FoliaRace report: " + error.getMessage());
             return "Report write failed: " + error.getMessage();
@@ -274,7 +311,22 @@ public final class FoliaRacePlugin extends JavaPlugin {
     }
 
     private List<FindingGroupSnapshot> reportFindings() {
-        return SuppressionMatcher.apply(findingAggregator.snapshot(), suppressions, Instant.now());
+        return FindingFilters.apply(
+                SuppressionMatcher.apply(findingAggregator.snapshot(), suppressions, Instant.now()),
+                configManager.current().minimumSeverity(),
+                configManager.current().minimumConfidence()
+        );
+    }
+
+    private void scheduleSessionExpiry(DiagnosticSession session) {
+        long delayTicks = Math.multiplyExact(configManager.current().maxSessionDurationSeconds(), 20L);
+        getServer().getGlobalRegionScheduler().runDelayed(this, task -> {
+            if (lastSession == session && session.state() == com.foliarace.core.session.SessionState.ACTIVE) {
+                stopSession();
+                flushReport();
+                getLogger().info("Session expired after " + configManager.current().maxSessionDurationSeconds() + " seconds");
+            }
+        }, delayTicks);
     }
 
     private CiEvaluation ciEvaluation(List<FindingGroupSnapshot> findings) {

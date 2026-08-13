@@ -11,10 +11,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CompatibilityMatrixTest {
     @Test
     void includesLegacyAndCurrentFoliaLines() {
-        assertTrue(CompatibilityMatrix.profiles().size() >= 12);
-        assertTrue(CompatibilityMatrix.profiles().stream().anyMatch(profile -> profile.minecraftLine().equals("1.19.4")));
+        assertEquals(7, CompatibilityMatrix.profiles().size());
+        assertTrue(CompatibilityMatrix.profiles().stream().noneMatch(profile -> profile.minecraftLine().equals("1.19.4")));
         assertTrue(CompatibilityMatrix.profiles().stream().anyMatch(profile -> profile.minecraftLine().equals("1.21.11")));
         assertTrue(CompatibilityMatrix.profiles().stream().anyMatch(profile -> profile.minecraftLine().equals("26.2")));
+        assertTrue(CompatibilityMatrix.profiles().stream().allMatch(profile -> profile.minimumJava() == 25));
     }
 
     @Test

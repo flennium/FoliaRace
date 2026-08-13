@@ -35,9 +35,13 @@ public final class FoliaRaceObservations {
             return ObservationReceipt.unavailable("location is null");
         }
         FoliaRacePlugin plugin = runtime;
-        return plugin == null
-                ? ObservationReceipt.unavailable("FoliaRace is not enabled")
-                : observe(plugin, source, location, category, plugin.runtimeAdapter().resolveLocationOwnership(location, Instant.now()));
+        if (plugin == null) {
+            return ObservationReceipt.unavailable("FoliaRace is not enabled");
+        }
+        if (!plugin.acceptSample()) {
+            return ObservationReceipt.unavailable("observation sampled out by configuration");
+        }
+        return observe(plugin, source, location, category, plugin.runtimeAdapter().resolveLocationOwnership(location, Instant.now()));
     }
 
     public static ObservationReceipt observeEntityAccess(Plugin source, Entity entity, OperationCategory category) {
@@ -45,16 +49,24 @@ public final class FoliaRaceObservations {
             return ObservationReceipt.unavailable("entity is null");
         }
         FoliaRacePlugin plugin = runtime;
-        return plugin == null
-                ? ObservationReceipt.unavailable("FoliaRace is not enabled")
-                : observe(plugin, source, entity, category, plugin.runtimeAdapter().resolveEntityOwnership(entity, Instant.now()));
+        if (plugin == null) {
+            return ObservationReceipt.unavailable("FoliaRace is not enabled");
+        }
+        if (!plugin.acceptSample()) {
+            return ObservationReceipt.unavailable("observation sampled out by configuration");
+        }
+        return observe(plugin, source, entity, category, plugin.runtimeAdapter().resolveEntityOwnership(entity, Instant.now()));
     }
 
     public static ObservationReceipt observeGlobalAccess(Plugin source, OperationCategory category) {
         FoliaRacePlugin plugin = runtime;
-        return plugin == null
-                ? ObservationReceipt.unavailable("FoliaRace is not enabled")
-                : observe(plugin, source, new Object(), category, com.foliarace.core.evidence.OwnershipEvidence.unknown(Instant.now()));
+        if (plugin == null) {
+            return ObservationReceipt.unavailable("FoliaRace is not enabled");
+        }
+        if (!plugin.acceptSample()) {
+            return ObservationReceipt.unavailable("observation sampled out by configuration");
+        }
+        return observe(plugin, source, new Object(), category, com.foliarace.core.evidence.OwnershipEvidence.unknown(Instant.now()));
     }
 
     public static ObservationReceipt observeInventoryAccess(Plugin source, Inventory inventory) {
@@ -80,6 +92,7 @@ public final class FoliaRaceObservations {
         Instant now = Instant.now();
 
         String pluginName = source.getName();
+        CallSite callSite = plugin.captureCallSite();
         Observation observation = new Observation(
                 java.util.UUID.randomUUID(),
                 now,
@@ -88,8 +101,8 @@ public final class FoliaRaceObservations {
                 category == null ? OperationCategory.UNKNOWN : category,
                 plugin.runtimeAdapter().classifyCurrentContext(now),
                 ownership,
-                new ObservationOrigin(pluginName, pluginName, "explicit-observation", "unknown", "", callSite()),
-                callSite(),
+                new ObservationOrigin(pluginName, pluginName, "explicit-observation", "unknown", "", callSite),
+                callSite,
                 java.util.Map.of("targetClass", target.getClass().getName())
         );
         boolean accepted = plugin.recordObservation(observation);
@@ -102,12 +115,4 @@ public final class FoliaRaceObservations {
         );
     }
 
-    private static CallSite callSite() {
-        List<String> frames = StackWalker.getInstance().walk(stream -> stream
-                .filter(frame -> !frame.getClassName().startsWith("com.foliarace.plugin."))
-                .limit(8)
-                .map(frame -> frame.getClassName() + "#" + frame.getMethodName())
-                .toList());
-        return new CallSite(frames.isEmpty() ? "unknown" : frames.getFirst(), frames);
-    }
 }

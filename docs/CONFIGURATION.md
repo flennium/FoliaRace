@@ -5,14 +5,14 @@ The plugin copies the defaults from `foliarace-plugin/src/main/resources/config.
 | Key | Meaning |
 | --- | --- |
 | `enabled-detectors` | Detector IDs to load. Unknown IDs reject the configuration. |
-| `overhead-mode` | Observation overhead profile, currently `standard` or the supported lower-overhead profiles. |
-| `max-session-duration-seconds` | Maximum lifetime of one diagnostic session. |
-| `minimum-severity` | Lowest finding severity written to the report. |
-| `minimum-confidence` | Lowest finding confidence written to the report. |
+| `overhead-mode` | Observation overhead profile: `minimal` omits stack capture, `standard` captures a bounded call site, and `exhaustive` captures a deeper call site. |
+| `max-session-duration-seconds` | Maximum lifetime of one diagnostic session. The active session is stopped and flushed automatically when it expires. |
+| `minimum-severity` | Lowest finding severity written to the report; lower-priority findings are filtered out. |
+| `minimum-confidence` | Lowest finding confidence written to the report; lower-confidence findings are filtered out. |
 | `observation-queue-capacity` | Bounded pipeline queue size. Overflow is counted in report health. |
-| `sampling-rate` | Fraction of eligible observations accepted, from `0.0` through `1.0`. |
-| `output-formats` | Report formats such as `json` and `markdown`. |
-| `production-mode` | Enables the guarded production mode. Use only with an explicit acknowledgement. |
+| `sampling-rate` | Fraction of eligible observations accepted before ownership resolution, from `0.0` through `1.0`. |
+| `output-formats` | Report formats such as `json` and `markdown`; each selected format is written on flush. |
+| `production-mode` | Explicit acknowledgement gate for enabling production-mode configuration. It does not silently change detector policy. |
 | `production-acknowledged` | Must be true before production mode is accepted. |
 | `suppression-file` | File name for reviewed, expiring suppressions. |
 | `baseline-file` | File name for the comparison baseline. |
